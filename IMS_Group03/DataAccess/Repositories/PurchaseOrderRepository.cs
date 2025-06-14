@@ -1,6 +1,6 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: DataAccess/Repositories/PurchaseOrderRepository.cs ---
-using IMS_Group03.DataAccess;
-using IMS_Group03.Models;
+﻿// File: DataAccess/Repositories/PurchaseOrderRepository.cs
+using IMS_Group03.DataAccess; // For AppDbContext
+using IMS_Group03.Models;     // For PurchaseOrder, OrderStatus, PurchaseOrderItem
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,24 +15,19 @@ namespace IMS_Group03.DataAccess.Repositories
         {
         }
 
-        // This private helper method is excellent and needs no changes.
         private IQueryable<PurchaseOrder> GetPurchaseOrdersWithDetailsQuery()
         {
             return _context.PurchaseOrders
                            .Include(po => po.Supplier)
                            .Include(po => po.PurchaseOrderItems)
-                               .ThenInclude(poi => poi.Product);
+                               .ThenInclude(poi => poi.Product); // Include Product for each PurchaseOrderItem
         }
 
-        // --- FIX: The method signature now matches the corrected interface. ---
-        public async Task<PurchaseOrder?> GetByIdWithDetailsAsync(int purchaseOrderId)
+        public async Task<PurchaseOrder> GetByIdWithDetailsAsync(int purchaseOrderId)
         {
-            // The FirstOrDefaultAsync logic was already correct.
             return await GetPurchaseOrdersWithDetailsQuery()
                            .FirstOrDefaultAsync(po => po.Id == purchaseOrderId);
         }
-
-        // --- All other methods are already correct and need no changes. ---
 
         public async Task<IEnumerable<PurchaseOrder>> GetAllWithDetailsAsync()
         {
@@ -71,8 +66,9 @@ namespace IMS_Group03.DataAccess.Repositories
         }
         public async Task<IEnumerable<PurchaseOrder>> GetOrdersContainingProductAsync(int productId)
         {
+            // This query is slightly more complex as it needs to check the child collection
             return await _context.PurchaseOrders
-                           .Include(po => po.Supplier)
+                           .Include(po => po.Supplier) // Optional: include supplier if needed for the result
                            .Where(po => po.PurchaseOrderItems.Any(poi => poi.ProductId == productId))
                            .OrderByDescending(po => po.OrderDate)
                            .ToListAsync();

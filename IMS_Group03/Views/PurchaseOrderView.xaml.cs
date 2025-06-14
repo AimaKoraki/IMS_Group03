@@ -63,7 +63,7 @@ namespace IMS_Group03.Views
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
             if (_controller == null) return;
-            await _controller.LoadInitialDataAsync();
+            await _controller.LoadPurchaseOrdersAsync();
         }
 
         private async void NewOrderButton_Click(object sender, RoutedEventArgs e)

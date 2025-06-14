@@ -2,7 +2,6 @@
 using IMS_Group03.Models;
 using IMS_Group03.Services;
 using IMS_Group03.ViewModels;
-using Microsoft.Extensions.DependencyInjection; // Required for IServiceScopeFactory
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.ObjectModel;
@@ -15,12 +14,13 @@ namespace IMS_Group03.Controllers
 {
     public class PurchaseOrderController : INotifyPropertyChanged
     {
-        // --- FIX: The controller now depends on the factory, not the services directly. ---
-        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IOrderService _orderService;
+        private readonly ISupplierService _supplierService;
+        private readonly IProductService _productService;
         private readonly ILogger<PurchaseOrderController> _logger;
         private int? _currentUserId;
 
-        #region Properties (Your existing properties are perfect and unchanged)
+        #region Properties
         public ObservableCollection<PurchaseOrder> PurchaseOrders { get; } = new();
 
         private PurchaseOrder? _selectedOrderForForm;
@@ -39,18 +39,19 @@ namespace IMS_Group03.Controllers
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // --- FIX: The constructor is updated to inject IServiceScopeFactory. ---
-        public PurchaseOrderController(IServiceScopeFactory scopeFactory, ILogger<PurchaseOrderController> logger)
+        public PurchaseOrderController(IOrderService orderService, ISupplierService supplierService, IProductService productService, ILogger<PurchaseOrderController> logger)
         {
-            _scopeFactory = scopeFactory;
+            _orderService = orderService;
+            _supplierService = supplierService;
+            _productService = productService;
             _logger = logger;
             this.PropertyChanged += OnSelectedOrderForFormChanged;
         }
 
-        // This event handler manipulates in-memory data and is correct. No changes needed.
         private void OnSelectedOrderForFormChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName != nameof(SelectedOrderForForm)) return;
+
             EditableOrderItems.Clear();
             if (SelectedOrderForForm?.PurchaseOrderItems != null)
             {
@@ -66,54 +67,44 @@ namespace IMS_Group03.Controllers
             _currentUserId = user.Id;
         }
 
-        #region Loading and Preparation Methods (Now using Scopes)
-
+        #region Loading and Preparation Methods
         public async Task LoadInitialDataAsync()
         {
-            IsBusy = true; ErrorMessage = string.Empty; OnAllPropertiesChanged();
-
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true; ErrorMessage = string.Empty;
+            try
             {
-                try
-                {
-                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
-                    var supplierService = scope.ServiceProvider.GetRequiredService<ISupplierService>();
-                    var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
-
-                    // --- FIX: Execute the queries sequentially, not in parallel. ---
-
-                    // 1. Await the first task. The method will pause here until it's done.
-                    var orders = await orderService.GetAllOrdersAsync();
-
-                    // 2. Only after the first is complete, start and await the second.
-                    var suppliers = await supplierService.GetAllSuppliersAsync();
-
-                    // 3. Only after the second is complete, start and await the third.
-                    var products = await productService.GetAllProductsAsync();
-
-                    // Now that all data is safely loaded, update the UI collections.
-                    PurchaseOrders.Clear();
-                    foreach (var order in orders) PurchaseOrders.Add(order); // OrderBy is in the repo now
-
-                    AvailableSuppliers.Clear();
-                    AvailableSuppliers.Add(new Supplier { Id = 0, Name = "-- Select Supplier --" });
-                    foreach (var sup in suppliers) AvailableSuppliers.Add(sup);
-
-                    AvailableProducts.Clear();
-                    AvailableProducts.Add(new Product { Id = 0, Name = "-- Select Product --" });
-                    foreach (var prod in products) AvailableProducts.Add(prod);
-                }
-                catch (Exception ex)
-                {
-                    // This will now only catch REAL exceptions, not the DbContext threading error.
-                    ErrorMessage = "Failed to load purchase order data.";
-                    _logger.LogError(ex, ErrorMessage);
-                }
-                finally { IsBusy = false; OnAllPropertiesChanged(); }
+                // FIX: Running sequentially to avoid DbContext threading issues.
+                await LoadPurchaseOrdersAsync();
+                await LoadSuppliersForFormAsync();
+                await LoadProductsForFormAsync();
             }
+            catch (Exception ex) { ErrorMessage = "Failed to load initial data."; _logger.LogError(ex, ErrorMessage); }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
 
-        // This is a UI-only operation, no DB access, so it's correct.
+        public async Task LoadPurchaseOrdersAsync()
+        {
+            var orders = await _orderService.GetAllOrdersAsync();
+            PurchaseOrders.Clear();
+            foreach (var order in orders.OrderByDescending(o => o.OrderDate)) PurchaseOrders.Add(order);
+        }
+
+        private async Task LoadSuppliersForFormAsync()
+        {
+            var suppliers = await _supplierService.GetAllSuppliersAsync();
+            AvailableSuppliers.Clear();
+            AvailableSuppliers.Add(new Supplier { Id = 0, Name = "-- Select Supplier --" });
+            foreach (var sup in suppliers.OrderBy(s => s.Name)) AvailableSuppliers.Add(sup);
+        }
+
+        private async Task LoadProductsForFormAsync()
+        {
+            var products = await _productService.GetAllProductsAsync();
+            AvailableProducts.Clear();
+            AvailableProducts.Add(new Product { Id = 0, Name = "-- Select Product --" });
+            foreach (var prod in products.OrderBy(p => p.Name)) AvailableProducts.Add(prod);
+        }
+
         public void PrepareNewPurchaseOrder()
         {
             SelectedOrderForForm = new PurchaseOrder { OrderDate = DateTime.Today };
@@ -121,137 +112,109 @@ namespace IMS_Group03.Controllers
 
         public async Task PrepareOrderForEditAsync(PurchaseOrder orderToEdit)
         {
-            IsBusy = true; OnPropertyChanged(nameof(IsBusy));
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true;
+            try
             {
-                try
-                {
-                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
-                    // Fetch the full order with all details for editing
-                    SelectedOrderForForm = await orderService.GetOrderByIdAsync(orderToEdit.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to load order {OrderId} for editing.", orderToEdit.Id);
-                    ErrorMessage = "Could not load order details.";
-                }
-                finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
+                SelectedOrderForForm = await _orderService.GetOrderByIdAsync(orderToEdit.Id);
             }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
         #endregion
 
-        #region In-Memory Item Management (These methods are correct and need no changes)
+        #region Form Manipulation Methods
+
         public void AddItemToEditableOrder()
         {
-            if (SelectedOrderForForm == null) return;
-            var newItem = new PurchaseOrderItem();
-            SelectedOrderForForm.PurchaseOrderItems.Add(newItem);
-            EditableOrderItems.Add(new PurchaseOrderItemViewModel(newItem, this.AvailableProducts));
+            EditableOrderItems.Add(new PurchaseOrderItemViewModel(new PurchaseOrderItem(), this.AvailableProducts) { IsNew = true });
         }
 
         public void RemoveItemFromEditableOrder(PurchaseOrderItemViewModel itemVM)
         {
-            // FIX 1: The 'f' in "Forform" was a typo. Corrected to "ForForm".
-            // FIX 2: You get the model by calling ToModel(), not accessing .Model.
-            if (SelectedOrderForForm != null)
-            {
-                var modelToRemove = SelectedOrderForForm.PurchaseOrderItems
-                                        .FirstOrDefault(i => i.ProductId == itemVM.ProductId && i.PurchaseOrderItemId == itemVM.ToModel().PurchaseOrderItemId);
-                if (modelToRemove != null)
-                {
-                    SelectedOrderForForm.PurchaseOrderItems.Remove(modelToRemove);
-                }
-            }
             EditableOrderItems.Remove(itemVM);
         }
+
         public void ClearFormSelection()
         {
-            // Setting this to null will hide the form and trigger the
-            // OnSelectedOrderForFormChanged event, which clears the item list.
             SelectedOrderForForm = null;
-            ErrorMessage = string.Empty;
-            OnPropertyChanged(nameof(ErrorMessage));
         }
+        #endregion
+
+        #region Main Actions (Save, Cancel, Receive)
+
         public async Task<(bool Success, string Message)> SavePurchaseOrderAsync()
         {
-            if (SelectedOrderForForm == null) return (false, "No order to save.");
-            if (SelectedOrderForForm.SupplierId == 0) return (false, "A supplier must be selected.");
+            if (_currentUserId == null) return (false, "Cannot save. No user session found.");
+            if (SelectedOrderForForm == null) return (false, "No order data to save.");
+            if (SelectedOrderForForm.SupplierId == 0) return (false, "Please select a supplier.");
+            if (!EditableOrderItems.Any()) return (false, "Order must have at least one item.");
 
-            // Transfer data from the EditableOrderItems (ViewModels) back to the main model
-            SelectedOrderForForm.PurchaseOrderItems = new List<PurchaseOrderItem>(EditableOrderItems.Select(vm => vm.ToModel()));
-
-            IsBusy = true; OnPropertyChanged(nameof(IsBusy));
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true; ErrorMessage = string.Empty;
+            try
             {
-                try
+                var itemsToSave = EditableOrderItems.Select(vm => vm.ToModel()).ToList();
+                if (SelectedOrderForForm.Id == 0)
                 {
-                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
-                    // FIX 3: This method call will now succeed because it's defined in IOrderService.
-                    await orderService.CreateOrUpdateOrderAsync(SelectedOrderForForm, _currentUserId ?? 0);
-
-                    await LoadInitialDataAsync();
-                    ClearFormSelection();
-                    return (true, "Purchase order saved successfully.");
+                    await _orderService.CreatePurchaseOrderAsync(SelectedOrderForForm, itemsToSave, _currentUserId.Value);
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Failed to save purchase order.");
-                    return (false, "Save failed. A database error occurred.");
+                    await _orderService.UpdatePurchaseOrderAsync(SelectedOrderForForm, itemsToSave, _currentUserId.Value);
                 }
-                finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
+                await LoadPurchaseOrdersAsync();
+                ClearFormSelection();
+                return (true, "Save successful.");
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Save failed: {ex.Message}";
+                _logger.LogError(ex, ErrorMessage);
+                return (false, ErrorMessage);
+            }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
 
         public async Task<(bool Success, string Message)> CancelPurchaseOrderAsync(int orderId)
         {
-            IsBusy = true; OnPropertyChanged(nameof(IsBusy));
-            using (var scope = _scopeFactory.CreateScope())
+            if (_currentUserId == null) return (false, "Cannot cancel. No user session found.");
+            IsBusy = true;
+            try
             {
-                try
-                {
-                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
-                    // FIX 4: This method call will now succeed.
-                    await orderService.UpdateOrderStatusAsync(orderId, OrderStatus.Cancelled, _currentUserId ?? 0);
-                    await LoadInitialDataAsync();
-                    return (true, "Order cancelled.");
-                }
-                catch (Exception ex) { return (false, "Failed to cancel order."); }
-                finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
+                await _orderService.CancelPurchaseOrderAsync(orderId, "Cancelled by user via UI.", _currentUserId.Value);
+                await LoadPurchaseOrdersAsync();
+                return (true, "Order cancelled successfully.");
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Cancel failed: {ex.Message}";
+                _logger.LogError(ex, ErrorMessage);
+                return (false, ErrorMessage);
+            }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
 
         public async Task<(bool Success, string Message)> UIRecceiveFullOrderAsync(int orderId)
         {
-            IsBusy = true; OnPropertyChanged(nameof(IsBusy));
-            using (var scope = _scopeFactory.CreateScope())
+            if (_currentUserId == null) return (false, "Cannot receive. No user session found.");
+            IsBusy = true;
+            try
             {
-                try
-                {
-                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
-                    // FIX 5: This method call will now succeed.
-                    await orderService.ReceiveFullOrderAsync(orderId, _currentUserId ?? 0);
-                    await LoadInitialDataAsync();
-                    return (true, "Order has been marked as received and stock levels updated.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to process receipt for order {OrderId}", orderId);
-                    return (false, "Failed to receive order. Check logs for details.");
-                }
-                finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
+                await _orderService.ReceiveFullPurchaseOrderAsync(orderId, _currentUserId.Value);
+                await LoadPurchaseOrdersAsync();
+                return (true, "Order fully received.");
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Receive failed: {ex.Message}";
+                _logger.LogError(ex, ErrorMessage);
+                return (false, ErrorMessage);
+            }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
         #endregion
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private void OnAllPropertiesChanged()
-        {
-            OnPropertyChanged(nameof(IsBusy));
-            OnPropertyChanged(nameof(ErrorMessage));
         }
     }
 }

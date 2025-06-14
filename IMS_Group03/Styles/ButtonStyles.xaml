@@ -2,7 +2,10 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="_Colors.xaml"/>
+        <ResourceDictionary Source="_Fonts.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
 
     <!-- Base Style for Action Buttons -->
     <!-- FIX: The base style now has NO triggers. It only contains common Setters. -->

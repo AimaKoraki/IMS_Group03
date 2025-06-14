@@ -1,4 +1,4 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Services/OrderService.cs ---
+﻿// --- CORRECTED AND FINALIZED: Services/OrderService.cs ---
 using IMS_Group03.DataAccess.Repositories;
 using IMS_Group03.Models;
 using Microsoft.Extensions.Logging;
@@ -22,7 +22,7 @@ namespace IMS_Group03.Services
             _logger = logger;
         }
 
-        #region Read Operations (These are correct)
+        #region Read Operations
         public async Task<PurchaseOrder?> GetOrderByIdAsync(int orderId) =>
             await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(orderId);
 
@@ -32,106 +32,139 @@ namespace IMS_Group03.Services
         public async Task<IEnumerable<PurchaseOrder>> GetOrdersByStatusAsync(OrderStatus status) =>
             await _unitOfWork.PurchaseOrders.GetOrdersByStatusWithDetailsAsync(status);
 
-        public async Task<IEnumerable<PurchaseOrder>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate) =>
-            await _unitOfWork.PurchaseOrders.GetOrdersByDateRangeWithDetailsAsync(startDate, endDate);
-
         public async Task<IEnumerable<PurchaseOrder>> GetOrdersForSupplierAsync(int supplierId) =>
             await _unitOfWork.PurchaseOrders.GetOrdersBySupplierWithDetailsAsync(supplierId);
         #endregion
 
-        #region Write Operations (Implementations with all fixes)
-
-        public async Task CreateOrUpdateOrderAsync(PurchaseOrder order, int userId)
+        #region Write Operations
+        public async Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder order, IEnumerable<PurchaseOrderItem> items, int createdByUserId)
         {
-            bool isNew = order.Id == 0;
+            if (order == null) throw new ArgumentNullException(nameof(order));
+            if (items == null || !items.Any()) throw new ArgumentException("Order must contain at least one item.", nameof(items));
 
-            if (isNew)
+            order.Status = OrderStatus.Pending;
+            order.OrderDate = DateTime.UtcNow;
+            order.DateCreated = DateTime.UtcNow;
+            order.LastUpdated = DateTime.UtcNow;
+            order.CreatedByUserId = createdByUserId;
+
+            foreach (var item in items)
             {
-                // Logic for creating a new order is correct.
-                order.Status = OrderStatus.Pending;
-                order.OrderDate = DateTime.UtcNow;
-                // ... other creation properties ...
-                await _unitOfWork.PurchaseOrders.AddAsync(order);
-                _logger.LogInformation("Creating new Purchase Order for Supplier {SupplierId}...", order.SupplierId);
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                if (product == null) throw new KeyNotFoundException($"Product with ID {item.ProductId} not found.");
+                if (item.UnitPrice <= 0) item.UnitPrice = product.Price;
             }
-            else // It's an update
-            {
-                var existingOrder = await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(order.Id);
-                if (existingOrder == null) throw new KeyNotFoundException($"Purchase Order with ID {order.Id} not found.");
-                if (existingOrder.Status != OrderStatus.Pending && existingOrder.Status != OrderStatus.Processing)
-                    throw new InvalidOperationException($"Cannot update order in status '{existingOrder.Status}'.");
+            order.PurchaseOrderItems = items.ToList();
 
-                // Update header properties
-                existingOrder.SupplierId = order.SupplierId;
-                existingOrder.ExpectedDeliveryDate = order.ExpectedDeliveryDate;
-                // FIX 5: 'existing' was a typo, corrected to 'existingOrder'
-                existingOrder.Notes = order.Notes;
-                existingOrder.LastUpdated = DateTime.UtcNow;
+            await _unitOfWork.PurchaseOrders.AddAsync(order);
+            await _unitOfWork.CompleteAsync(); // Commit transaction
 
-                // FIX 4: Implement item update logic here, as UpdateOrderItems doesn't exist in the repository.
-                var updatedItemIds = new HashSet<int>(order.PurchaseOrderItems.Select(i => i.ProductId));
-                var itemsToRemove = existingOrder.PurchaseOrderItems.Where(i => !updatedItemIds.Contains(i.ProductId)).ToList();
-
-                // Remove deleted items
-                foreach (var item in itemsToRemove)
-                {
-                    existingOrder.PurchaseOrderItems.Remove(item);
-                }
-
-                // Add or Update items
-                foreach (var updatedItem in order.PurchaseOrderItems)
-                {
-                    var existingItem = existingOrder.PurchaseOrderItems.FirstOrDefault(i => i.ProductId == updatedItem.ProductId);
-                    if (existingItem != null) // It's an update
-                    {
-                        existingItem.QuantityOrdered = updatedItem.QuantityOrdered;
-                        existingItem.UnitPrice = updatedItem.UnitPrice;
-                    }
-                    else // It's a new item for this order
-                    {
-                        existingOrder.PurchaseOrderItems.Add(updatedItem);
-                    }
-                }
-
-                _unitOfWork.PurchaseOrders.Update(existingOrder);
-                _logger.LogInformation("Updating Purchase Order {OrderId}...", existingOrder.Id);
-            }
-
-            await _unitOfWork.CompleteAsync();
+            _logger.LogInformation("Successfully created Purchase Order {OrderId} for Supplier {SupplierId} by User {UserId}.", order.Id, order.SupplierId, createdByUserId);
+            return order;
         }
 
-        public async Task UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, int userId)
+        public async Task UpdatePurchaseOrderAsync(PurchaseOrder orderHeader, IEnumerable<PurchaseOrderItem> updatedItems, int updatedByUserId)
+        {
+            var existingOrder = await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(orderHeader.Id);
+            if (existingOrder == null) throw new KeyNotFoundException($"Purchase Order with ID {orderHeader.Id} not found.");
+            if (existingOrder.Status != OrderStatus.Pending && existingOrder.Status != OrderStatus.Processing)
+            {
+                throw new InvalidOperationException($"Cannot update order in status '{existingOrder.Status}'.");
+            }
+
+            // Update header
+            existingOrder.SupplierId = orderHeader.SupplierId;
+            existingOrder.ExpectedDeliveryDate = orderHeader.ExpectedDeliveryDate;
+            existingOrder.Notes = orderHeader.Notes;
+            existingOrder.LastUpdated = DateTime.UtcNow;
+
+            // Manage line items
+            var updatedItemsLookup = updatedItems.ToDictionary(i => i.ProductId);
+            var existingItems = existingOrder.PurchaseOrderItems.ToList();
+
+            // Delete items not in the new list
+            foreach (var dbItem in existingItems.Where(db => !updatedItemsLookup.ContainsKey(db.ProductId)))
+            {
+                existingOrder.PurchaseOrderItems.Remove(dbItem);
+            }
+
+            // Add new or update existing items
+            foreach (var updatedItem in updatedItems)
+            {
+                var dbItem = existingOrder.PurchaseOrderItems.FirstOrDefault(i => i.ProductId == updatedItem.ProductId);
+                if (dbItem != null) // Update existing
+                {
+                    dbItem.QuantityOrdered = updatedItem.QuantityOrdered;
+                    dbItem.UnitPrice = updatedItem.UnitPrice;
+                }
+                else // Add new
+                {
+                    existingOrder.PurchaseOrderItems.Add(updatedItem);
+                }
+            }
+
+            _unitOfWork.PurchaseOrders.Update(existingOrder);
+            await _unitOfWork.CompleteAsync(); // Commit transaction
+
+            _logger.LogInformation("Successfully updated Purchase Order {OrderId} by User {UserId}.", existingOrder.Id, updatedByUserId);
+        }
+
+        public async Task CancelPurchaseOrderAsync(int orderId, string reason, int cancelledByUserId)
         {
             var order = await _unitOfWork.PurchaseOrders.GetByIdAsync(orderId);
             if (order == null) throw new KeyNotFoundException($"Purchase Order with ID {orderId} not found.");
-
-            // FIX 3: Removed check for 'Archived' status as it doesn't exist in the enum.
-            if (order.Status == OrderStatus.Received)
+            if (order.Status == OrderStatus.Received || order.Status == OrderStatus.Shipped)
             {
-                throw new InvalidOperationException($"Cannot change status of a received order.");
+                throw new InvalidOperationException($"Cannot cancel an order that is already '{order.Status}'.");
             }
 
-            order.Status = newStatus;
+            order.Status = OrderStatus.Cancelled;
+            order.Notes = $"Cancelled by User {cancelledByUserId}. Reason: {reason} - {order.Notes}";
             order.LastUpdated = DateTime.UtcNow;
+
             _unitOfWork.PurchaseOrders.Update(order);
-            await _unitOfWork.CompleteAsync();
-            _logger.LogWarning("Status for Purchase Order {OrderId} changed to {NewStatus}...", orderId, newStatus);
+            await _unitOfWork.CompleteAsync(); // Commit transaction
+
+            _logger.LogWarning("Cancelled Purchase Order {OrderId} by User {UserId}. Reason: {Reason}", orderId, cancelledByUserId, reason);
         }
 
-        public async Task ReceiveFullOrderAsync(int orderId, int receivedByUserId)
+        public async Task ReceivePurchaseOrderItemAsync(int orderId, int productIdOfItemToReceive, int quantityReceived, int receivedByUserId)
+        {
+            if (quantityReceived <= 0) throw new ArgumentException("Quantity received must be positive.");
+
+            var order = await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(orderId);
+            if (order == null) throw new KeyNotFoundException($"Purchase Order with ID {orderId} not found.");
+
+            var item = order.PurchaseOrderItems.FirstOrDefault(i => i.ProductId == productIdOfItemToReceive);
+            if (item == null) throw new KeyNotFoundException($"Product ID {productIdOfItemToReceive} not found in Order {orderId}.");
+
+            // Stage the stock movement but DO NOT SAVE
+            string reason = $"Received for PO #{orderId}";
+            await _stockMovementService.StagePurchaseReceiptAsync(item.ProductId, quantityReceived, reason, receivedByUserId, item.PurchaseOrderId);
+
+            // Update the PO item and order status
+            item.QuantityReceived += quantityReceived;
+            order.Status = order.PurchaseOrderItems.All(i => i.QuantityReceived >= i.QuantityOrdered)
+                ? OrderStatus.Received
+                : OrderStatus.Processing;
+            order.LastUpdated = DateTime.UtcNow;
+
+            await _unitOfWork.CompleteAsync(); // Commit transaction (updates stock, PO item, and PO header together)
+            _logger.LogInformation("Received {Quantity} of Product {ProductId} for PO {OrderId} by User {UserId}.", quantityReceived, productIdOfItemToReceive, orderId, receivedByUserId);
+        }
+
+        public async Task ReceiveFullPurchaseOrderAsync(int orderId, int receivedByUserId)
         {
             var order = await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(orderId);
             if (order == null) throw new KeyNotFoundException($"Purchase Order with ID {orderId} not found.");
-            // ... business rule checks ...
 
             foreach (var item in order.PurchaseOrderItems)
             {
                 int quantityToReceive = item.QuantityOrdered - item.QuantityReceived;
                 if (quantityToReceive <= 0) continue;
 
-                // FIX 1: Call the method that exists in IStockMovementService: 'StagePurchaseReceiptAsync'
-                await _stockMovementService.StagePurchaseReceiptAsync(item.ProductId, quantityToReceive, $"Full receipt for PO #{orderId}", receivedByUserId, item.PurchaseOrderItemId);
-
+                string reason = $"Full receipt for PO #{orderId}";
+                await _stockMovementService.StagePurchaseReceiptAsync(item.ProductId, quantityToReceive, reason, receivedByUserId, item.PurchaseOrderId);
                 item.QuantityReceived += quantityToReceive;
             }
 
@@ -139,29 +172,8 @@ namespace IMS_Group03.Services
             order.ActualDeliveryDate = DateTime.UtcNow;
             order.LastUpdated = DateTime.UtcNow;
 
-            await _unitOfWork.CompleteAsync();
-            _logger.LogInformation("Full receipt for PO {OrderId} processed...", orderId);
-        }
-
-        public async Task ReceivePurchaseOrderItemAsync(int orderId, int purchaseOrderItemId, int quantityReceived, int receivedByUserId)
-        {
-            // ... validation logic ...
-            var order = await _unitOfWork.PurchaseOrders.GetByIdWithDetailsAsync(orderId);
-            if (order == null) throw new KeyNotFoundException($"Purchase Order with ID {orderId} not found.");
-            var item = order.PurchaseOrderItems.FirstOrDefault(i => i.PurchaseOrderItemId == purchaseOrderItemId);
-            if (item == null) throw new KeyNotFoundException($"Item ID {purchaseOrderItemId} not found in Order {orderId}.");
-
-            // FIX 2: Call the method that exists in IStockMovementService: 'StagePurchaseReceiptAsync'
-            await _stockMovementService.StagePurchaseReceiptAsync(item.ProductId, quantityReceived, $"Partial receipt for PO #{orderId}", receivedByUserId, item.PurchaseOrderItemId);
-
-            item.QuantityReceived += quantityReceived;
-            order.Status = order.PurchaseOrderItems.All(i => i.QuantityReceived >= i.QuantityOrdered)
-                ? OrderStatus.Received
-                : OrderStatus.Processing;
-            order.LastUpdated = DateTime.UtcNow;
-
-            await _unitOfWork.CompleteAsync();
-            _logger.LogInformation("Received {Quantity} of Item {ItemId} for PO {OrderId}...", quantityReceived, purchaseOrderItemId, orderId);
+            await _unitOfWork.CompleteAsync(); // Commit all staged changes in one transaction
+            _logger.LogInformation("Full receipt for PO {OrderId} processed by User {UserId}.", orderId, receivedByUserId);
         }
         #endregion
     }

@@ -1,62 +1,92 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Views/LoginWindow.xaml.cs ---
+﻿// --- TEMPORARY HARDCODED LOGIN: Views/LoginWindow.xaml.cs ---
 using IMS_Group03.Controllers;
+using IMS_Group03.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
-namespace IMS_Group03.Views
+namespace IMS_Group03
 {
     public partial class LoginWindow : Window
     {
-        private readonly LoginController? _controller;
+        // We are temporarily bypassing the controller.
+        // private readonly LoginController _controller;
 
         public LoginWindow()
         {
             InitializeComponent();
+
             if (DesignerProperties.GetIsInDesignMode(this)) return;
 
-            _controller = App.ServiceProvider?.GetService<LoginController>();
-            if (_controller == null)
-            {
-                MessageBox.Show("A critical error occurred: Login module could not load.", "Fatal Error");
-                Application.Current.Shutdown();
-                return;
-            }
-            this.DataContext = _controller;
+            // Since we are bypassing the controller, we don't need to set the DataContext for now.
+            // Some bindings in the XAML might not work (like IsBusy), but the login button will.
+            // _controller = App.ServiceProvider.GetRequiredService<LoginController>();
+            // this.DataContext = _controller;
+
+            UsernameTextBox.Focus();
         }
 
-        private async void LoginButton_Click(object sender, RoutedEventArgs e)
+        private void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_controller == null) return;
+            // We removed async because this is no longer an async operation.
+            AttemptLogin();
+        }
 
-            // Securely pass the password from the PasswordBox to the controller.
-            var authenticatedUser = await _controller.LoginAsync(UserPasswordBox.Password);
+        private void AttemptLogin()
+        {
+            string username = UsernameTextBox.Text;
+            string password = PasswordInputBox.Password;
 
-            // --- FIX: Check if the returned user object is not null, instead of checking a boolean. ---
-            if (authenticatedUser != null)
+            // --- THIS IS THE TEMPORARY HARDCODED LOGIC ---
+            if (username.Equals("admin", System.StringComparison.OrdinalIgnoreCase) && password == "password123")
             {
-                // On successful login, get a new instance of the MainWindow
+                // Login is successful.
+
+                // 1. Create a fake User object to represent the logged-in user.
+                var fakeUser = new User
+                {
+                    Id = 99, // A temporary ID
+                    Username = "admin",
+                    FullName = "Administrator",
+                    Role = "Admin"
+                };
+
+                // 2. Get the Singleton instance of the MainController.
+                var mainController = App.ServiceProvider.GetRequiredService<MainController>();
+
+                // 3. Tell the MainController who is logged in.
+                mainController.SetAuthenticatedUser(fakeUser);
+
+                // 4. Get a new instance of the MainWindow.
                 var mainWindow = App.ServiceProvider.GetRequiredService<MainWindow>();
+
                 mainWindow.Show();
-
-                // Close the login window
-                this.Close();
+                this.Close(); // Close the login window.
             }
-            // If login fails, authenticatedUser will be null, and the controller will have
-            // set its ErrorMessage property, which the UI will display automatically.
+            else
+            {
+                // If login fails, manually show an error message.
+                MessageBox.Show("Invalid username or password. Please use 'admin' and 'password123' for this test.", "Login Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
-        // Allows the user to drag the custom window.
-        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                this.DragMove();
-        }
-
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                AttemptLogin();
+            }
+            else if (e.Key == Key.Escape)
+            {
+                this.Close();
+            }
         }
     }
 }

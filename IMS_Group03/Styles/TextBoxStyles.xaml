@@ -2,6 +2,11 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="_Colors.xaml"/>
+        <ResourceDictionary Source="_Fonts.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- Style for Labels -->
     <Style x:Key="LabelStyleDark" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource SubtleTextBrush}"/>

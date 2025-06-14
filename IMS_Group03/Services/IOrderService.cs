@@ -1,78 +1,43 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Services/IOrderService.cs ---
+﻿// --- CORRECTED AND FINALIZED: Services/IOrderService.cs ---
 using IMS_Group03.Models;
-using System; // Required for DateTime
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+using IMS_Group03.DataAccess.Repositories;
 namespace IMS_Group03.Services
 {
-    /// <summary>
-    /// Defines the contract for business logic related to Purchase Orders.
-    /// These methods orchestrate one or more repository calls within a single transaction
-    /// via the UnitOfWork pattern.
-    /// </summary>
     public interface IOrderService
     {
-        #region Read Operations
-
-        /// <summary>
-        /// Gets a single purchase order by its ID, ensuring all related items and supplier data are included.
-        /// </summary>
+        // --- Read Operations ---
         Task<PurchaseOrder?> GetOrderByIdAsync(int orderId);
-
-        /// <summary>
-        /// Gets all purchase orders, including their related data.
-        /// </summary>
         Task<IEnumerable<PurchaseOrder>> GetAllOrdersAsync();
-
-        /// <summary>
-        /// Gets all purchase orders that match a specific status.
-        /// </summary>
         Task<IEnumerable<PurchaseOrder>> GetOrdersByStatusAsync(OrderStatus status);
-
-        /// <summary>
-        /// Gets all purchase orders within a given date range for reporting.
-        /// </summary>
-        Task<IEnumerable<PurchaseOrder>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
-
-        /// <summary>
-        /// Gets all purchase orders for a specific supplier.
-        /// </summary>
         Task<IEnumerable<PurchaseOrder>> GetOrdersForSupplierAsync(int supplierId);
 
-        #endregion
-
-        #region Write Operations (Transactional)
+        // --- Write Operations (Full Transactions) ---
 
         /// <summary>
-        /// Creates a new purchase order or updates an existing one in a single transaction.
-        /// This method handles both add and edit scenarios.
+        /// Creates a new purchase order and its associated line items.
         /// </summary>
-        /// <param name="order">The purchase order model, including its items.</param>
-        /// <param name="userId">The ID of the user performing the action for auditing.</param>
-        Task CreateOrUpdateOrderAsync(PurchaseOrder order, int userId);
+        Task<PurchaseOrder> CreatePurchaseOrderAsync(PurchaseOrder order, IEnumerable<PurchaseOrderItem> items, int createdByUserId);
 
         /// <summary>
-        /// Updates the status of an existing order (e.g., to 'Cancelled' or 'On Hold').
+        /// Updates the header and line items of an existing purchase order.
         /// </summary>
-        /// <param name="orderId">The ID of the order to update.</param>
-        /// <param name="newStatus">The new status for the order.</param>
-        /// <param name="userId">The ID of the user performing the action.</param>
-        Task UpdateOrderStatusAsync(int orderId, OrderStatus newStatus, int userId);
+        Task UpdatePurchaseOrderAsync(PurchaseOrder orderHeader, IEnumerable<PurchaseOrderItem> updatedItems, int updatedByUserId);
 
         /// <summary>
-        /// Marks an entire order as received and updates stock levels for all items in a single transaction.
+        /// Cancels a purchase order.
         /// </summary>
-        /// <param name="orderId">The ID of the order being received.</param>
-        /// <param name="userId">The ID of the user performing the action.</param>
-        Task ReceiveFullOrderAsync(int orderId, int userId);
+        Task CancelPurchaseOrderAsync(int orderId, string reason, int cancelledByUserId);
 
         /// <summary>
-        /// Records the partial or full receipt of a SINGLE line item on a purchase order.
-        /// Useful for future implementation of partial receipts.
+        /// Records the partial or full receipt of a single line item on a purchase order.
         /// </summary>
-        Task ReceivePurchaseOrderItemAsync(int orderId, int purchaseOrderItemId, int quantityReceived, int receivedByUserId);
+        Task ReceivePurchaseOrderItemAsync(int orderId, int productIdOfItemToReceive, int quantityReceived, int receivedByUserId);
 
-        #endregion
+        /// <summary>
+        /// Receives all remaining items for an entire purchase order.
+        /// </summary>
+        Task ReceiveFullPurchaseOrderAsync(int orderId, int receivedByUserId);
     }
 }

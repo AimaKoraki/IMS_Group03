@@ -31,29 +31,11 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Margin="20,30,20,30">
-
-                    <!-- The Border for the logo -->
-                    <Border Width="100"
-                            Height="100"
-                            CornerRadius="50" 
-                            HorizontalAlignment="Center"
-                            
-                            
-                  
-                            BorderThickness="2">
-
-                       
-                        <Border.Background>
-                            <ImageBrush ImageSource="/Assets/Images/logo.png" 
-                                        Stretch="UniformToFill" />
-                        </Border.Background>
-
-                    </Border>
-
+                    <Ellipse Width="100" Height="100" Fill="#555555"/>
                     <TextBlock Text="{Binding WelcomeMessage}" Foreground="White" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="0,15,0,5"/>
                     <TextBlock Text="{Binding CurrentUser.Role, StringFormat='Role: {0}'}" Foreground="#AAAAAA" TextAlignment="Center" FontSize="14"/>
-
                 </StackPanel>
+
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10,0">
                     <StackPanel>
                         <!-- FIX: All navigation buttons are now present and correctly configured -->

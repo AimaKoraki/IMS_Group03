@@ -1,16 +1,16 @@
-﻿// --- THIS CODE IS ALREADY FINAL AND CORRECT ---
+﻿// --- COMPLETE AND FINALIZED: Controllers/MainController.cs ---
 using IMS_Group03.Models;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-// No need for System.Threading.Tasks as this controller is not async
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace IMS_Group03.Controllers
 {
     public class MainController : INotifyPropertyChanged
     {
-        #region Properties (Your properties are perfect)
+        #region Properties
         private object _currentViewIdentifier = "DashboardView";
         public object CurrentViewIdentifier
         {
@@ -32,6 +32,7 @@ namespace IMS_Group03.Controllers
             set { _isGlobalBusy = value; OnPropertyChanged(); }
         }
 
+        // Property to hold the authenticated user
         private User? _currentUser;
         public User? CurrentUser
         {
@@ -50,26 +51,27 @@ namespace IMS_Group03.Controllers
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler? OnLogoutRequested;
 
-        // Constructor is empty and correct because it has no dependencies.
         public MainController()
         {
+            // Constructor is correct
         }
 
-        // This method correctly receives state from other controllers.
-        // It does not perform database operations itself.
+        // Method to be called by the Login process to set the user
         public void SetAuthenticatedUser(User user)
         {
             CurrentUser = user;
+            // After setting the user, navigate to the initial screen
             NavigateToDashboard();
         }
 
-        #region Navigation Methods (These are correct)
+        #region Navigation Methods (Your original methods restored)
+
         public void NavigateToDashboard()
         {
             CurrentViewIdentifier = "DashboardView";
             StatusMessage = "Dashboard";
         }
-        // ... Other navigation methods are also correct ...
+
         public void NavigateToProducts()
         {
             CurrentViewIdentifier = "ProductsView";
@@ -107,17 +109,17 @@ namespace IMS_Group03.Controllers
         }
         #endregion
 
-        // This method correctly manages logout state and events.
+        // Method to handle user logout
         public void Logout()
         {
             if (MessageBox.Show("Are you sure you want to log out?", "Confirm Logout", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 CurrentUser = null;
+                // Raise the event that the MainWindow is listening for.
                 OnLogoutRequested?.Invoke(this, EventArgs.Empty);
             }
         }
 
-        // OnPropertyChanged implementation is correct.
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

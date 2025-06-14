@@ -1,4 +1,4 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: DataAccess/AppDbContext.cs ---
+﻿// --- FULLY CORRECTED AND FINALIZED FOR COLUMN NAMES: DataAccess/AppDbContext.cs ---
 using IMS_Group03.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -7,7 +7,6 @@ namespace IMS_Group03.DataAccess
 {
     public class AppDbContext : DbContext
     {
-        // (DbSet properties are correct and unchanged)
         public DbSet<User> Users { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Product> Products { get; set; }
@@ -21,37 +20,74 @@ namespace IMS_Group03.DataAccess
         {
             base.OnModelCreating(modelBuilder);
 
-            // (User, Supplier, Product, PurchaseOrder, and PurchaseOrderItem configurations are correct and unchanged)
-            #region Unchanged Configurations
-            modelBuilder.Entity<User>(entity => { /* ... */ });
-            modelBuilder.Entity<Supplier>(entity => { /* ... */ });
-            modelBuilder.Entity<Product>(entity => { /* ... */ });
-            modelBuilder.Entity<PurchaseOrder>(entity => { /* ... */ });
-            modelBuilder.Entity<PurchaseOrderItem>(entity => {
+            #region Entity Configurations
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                // No changes needed here, User keys are usually just 'Id'
+            });
+
+            modelBuilder.Entity<Supplier>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                // No changes needed here
+            });
+
+            // --- Product Configuration ---
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                // FIX: Explicitly map the foreign key property to the database column name.
+                entity.Property(e => e.SupplierId).HasColumnName("SupplierId");
+
+                entity.HasOne(p => p.Supplier).WithMany(s => s.Products).HasForeignKey(p => p.SupplierId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // --- PurchaseOrder Configuration ---
+            modelBuilder.Entity<PurchaseOrder>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                // FIX: Explicitly map all foreign key properties.
+                entity.Property(e => e.SupplierId).HasColumnName("SupplierId");
+                entity.Property(e => e.CreatedByUserId).HasColumnName("CreatedByUserId");
+
+                entity.HasOne(po => po.Supplier).WithMany(s => s.PurchaseOrders).HasForeignKey(po => po.SupplierId).IsRequired().OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(po => po.CreatedByUser).WithMany(u => u.CreatedPurchaseOrders).HasForeignKey(po => po.CreatedByUserId).OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // --- PurchaseOrderItem Configuration ---
+            modelBuilder.Entity<PurchaseOrderItem>(entity =>
+            {
                 entity.HasKey(poi => poi.PurchaseOrderItemId);
                 entity.HasIndex(poi => new { poi.PurchaseOrderId, poi.ProductId }).IsUnique();
-                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+
+                // FIX: Explicitly map all foreign key properties.
+                entity.Property(e => e.PurchaseOrderId).HasColumnName("PurchaseOrderId");
+                entity.Property(e => e.ProductId).HasColumnName("ProductId");
+
                 entity.HasOne(poi => poi.PurchaseOrder).WithMany(po => po.PurchaseOrderItems).HasForeignKey(poi => poi.PurchaseOrderId).IsRequired().OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(poi => poi.Product).WithMany(p => p.PurchaseOrderItems).HasForeignKey(poi => poi.ProductId).IsRequired().OnDelete(DeleteBehavior.NoAction);
             });
-            #endregion
 
             // --- StockMovement Configuration ---
             modelBuilder.Entity<StockMovement>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.MovementDate).IsRequired().HasDefaultValueSql("GETDATE()");
-                entity.Property(e => e.Type).IsRequired();
-                entity.Property(e => e.Reason).HasMaxLength(500);
+
+                // FIX: Explicitly map all foreign key properties.
+                entity.Property(e => e.ProductId).HasColumnName("ProductId");
+                entity.Property(e => e.SourcePurchaseOrderId).HasColumnName("SourcePurchaseOrderId");
+                entity.Property(e => e.PurchaseOrderItemId).HasColumnName("PurchaseOrderItemId");
+                entity.Property(e => e.PerformedByUserId).HasColumnName("PerformedByUserId");
 
                 entity.HasOne(sm => sm.Product).WithMany(p => p.StockMovements).HasForeignKey(sm => sm.ProductId).IsRequired().OnDelete(DeleteBehavior.Restrict);
-
-                // FIX: This relationship is changed to NoAction to resolve the conflict.
                 entity.HasOne(sm => sm.SourcePurchaseOrder).WithMany().HasForeignKey(sm => sm.SourcePurchaseOrderId).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
-
                 entity.HasOne(sm => sm.PurchaseOrderItem).WithMany().HasForeignKey(sm => sm.PurchaseOrderItemId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
                 entity.HasOne(sm => sm.PerformedByUser).WithMany(u => u.PerformedStockMovements).HasForeignKey(sm => sm.PerformedByUserId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
             });
+
+            #endregion
         }
     }
 }

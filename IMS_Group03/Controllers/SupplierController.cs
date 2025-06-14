@@ -1,8 +1,7 @@
 ﻿// --- FULLY CORRECTED AND FINALIZED: Controllers/SupplierController.cs ---
 using IMS_Group03.Models;
 using IMS_Group03.Services;
-using Microsoft.Extensions.DependencyInjection; // Required for IServiceScopeFactory
-using Microsoft.Extensions.Logging;             // Required for ILogger
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -14,221 +13,147 @@ namespace IMS_Group03.Controllers
 {
     public class SupplierController : INotifyPropertyChanged
     {
-        // --- FIX: The controller now depends on the factory, not the service directly. ---
-        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ISupplierService _supplierService;
         private readonly ILogger<SupplierController> _logger;
+        private int? _currentUserId;
 
-        #region Properties (Your existing properties are perfect and unchanged)
-        public ObservableCollection<Supplier> Suppliers { get; } = new ObservableCollection<Supplier>();
-
-        private Supplier? _selectedSupplierForForm;
-        public Supplier? SelectedSupplierForForm
-        {
-            get => _selectedSupplierForForm;
-            set { _selectedSupplierForForm = value; OnPropertyChanged(); }
-        }
-
-        private Supplier? _selectedSupplierGridItem;
-        public Supplier? SelectedSupplierGridItem
-        {
-            get => _selectedSupplierGridItem;
-            set
-            {
-                if (_selectedSupplierGridItem != value)
-                {
-                    _selectedSupplierGridItem = value;
-                    OnPropertyChanged();
-                    // If you want selecting the grid to auto-populate the form:
-                    PrepareSupplierForEdit(_selectedSupplierGridItem);
-                }
-            }
-        }
-
-        private bool _isBusy;
-        public bool IsBusy
-        {
-            get => _isBusy;
-            private set { _isBusy = value; OnPropertyChanged(); }
-        }
-
-        private string _errorMessage = string.Empty;
-        public string ErrorMessage
-        {
-            get => _errorMessage;
-            private set { _errorMessage = value ?? string.Empty; OnPropertyChanged(); }
-        }
+        #region Properties
+        public ObservableCollection<Supplier> Suppliers { get; } = new();
+        public Supplier? SelectedSupplierForForm { get; private set; }
+        public Supplier? SelectedSupplierGridItem { get; set; }
+        public bool IsBusy { get; private set; }
+        public string ErrorMessage { get; private set; } = string.Empty;
         #endregion
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // --- FIX: The constructor is updated to inject IServiceScopeFactory and ILogger. ---
-        public SupplierController(IServiceScopeFactory scopeFactory, ILogger<SupplierController> logger)
+        public SupplierController(ISupplierService supplierService, ILogger<SupplierController> logger)
         {
-            _scopeFactory = scopeFactory;
+            _supplierService = supplierService;
             _logger = logger;
         }
 
-        // --- FIX: All data loading now happens inside a dedicated scope. ---
+        public void SetCurrentUser(User user)
+        {
+            _currentUserId = user.Id;
+        }
+
+        #region Loading and Preparation Methods
         public async Task LoadSuppliersAsync()
         {
-            IsBusy = true; ErrorMessage = string.Empty; OnAllPropertiesChanged();
-
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true; ErrorMessage = string.Empty;
+            OnPropertyChanged(nameof(IsBusy)); OnPropertyChanged(nameof(ErrorMessage));
+            try
             {
-                try
+                var supplierModels = await _supplierService.GetAllSuppliersAsync();
+                Suppliers.Clear();
+                foreach (var model in supplierModels.OrderBy(s => s.Name))
                 {
-                    var supplierService = scope.ServiceProvider.GetRequiredService<ISupplierService>();
-                    var supplierModels = await supplierService.GetAllSuppliersAsync();
-
-                    Suppliers.Clear();
-                    if (supplierModels != null)
-                    {
-                        foreach (var model in supplierModels.OrderBy(s => s.Name))
-                        {
-                            Suppliers.Add(model);
-                        }
-                    }
+                    Suppliers.Add(model);
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to load suppliers.");
-                    ErrorMessage = "Failed to load suppliers. A database error occurred.";
-                }
-                finally
-                {
-                    IsBusy = false; OnAllPropertiesChanged();
-                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Failed to load suppliers.";
+                _logger.LogError(ex, ErrorMessage);
+            }
+            finally
+            {
+                IsBusy = false;
+                OnPropertyChanged(nameof(IsBusy));
             }
         }
 
-        #region UI-Only Methods (Correct and unchanged)
         public void PrepareNewSupplier()
         {
-            ErrorMessage = string.Empty;
             SelectedSupplierGridItem = null;
             SelectedSupplierForForm = new Supplier();
-            OnAllPropertiesChanged();
+            OnPropertyChanged(nameof(SelectedSupplierGridItem));
+            OnPropertyChanged(nameof(SelectedSupplierForForm));
         }
 
         public void PrepareSupplierForEdit(Supplier? supplierToEdit)
         {
-            ErrorMessage = string.Empty;
             if (supplierToEdit == null)
             {
                 SelectedSupplierForForm = null;
             }
             else
             {
-                SelectedSupplierForForm = new Supplier
+                SelectedSupplierForForm = new Supplier // Create a copy for editing
                 {
                     Id = supplierToEdit.Id,
-                    Name = supplierToEdit.Name ?? string.Empty,
-                    ContactPerson = supplierToEdit.ContactPerson ?? string.Empty,
-                    Email = supplierToEdit.Email ?? string.Empty,
-                    Phone = supplierToEdit.Phone ?? string.Empty,
-                    Address = supplierToEdit.Address ?? string.Empty
+                    Name = supplierToEdit.Name,
+                    ContactPerson = supplierToEdit.ContactPerson,
+                    Email = supplierToEdit.Email,
+                    Phone = supplierToEdit.Phone,
+                    Address = supplierToEdit.Address
                 };
             }
-            OnAllPropertiesChanged();
+            OnPropertyChanged(nameof(SelectedSupplierForForm));
         }
 
         public void ClearFormSelection()
         {
             SelectedSupplierForForm = null;
-            SelectedSupplierGridItem = null;
-            ErrorMessage = string.Empty;
-            OnAllPropertiesChanged();
+            OnPropertyChanged(nameof(SelectedSupplierForForm));
         }
         #endregion
 
-        #region Database Write Methods (Now using Scopes)
-
+        #region Save/Delete Methods
         public async Task<(bool Success, string Message)> SaveSupplierAsync()
         {
             if (SelectedSupplierForForm == null) return (false, "No supplier data to save.");
             if (string.IsNullOrWhiteSpace(SelectedSupplierForForm.Name)) return (false, "Supplier name is required.");
-            // ... other validation ...
 
-            IsBusy = true; ErrorMessage = string.Empty; OnAllPropertiesChanged();
-
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true; ErrorMessage = string.Empty;
+            try
             {
-                try
+                if (SelectedSupplierForForm.Id == 0)
                 {
-                    var supplierService = scope.ServiceProvider.GetRequiredService<ISupplierService>();
-                    bool isNewSupplier = SelectedSupplierForForm.Id == 0;
-
-                    if (!await supplierService.IsSupplierNameUniqueAsync(SelectedSupplierForForm.Name, isNewSupplier ? (int?)null : SelectedSupplierForForm.Id))
-                    {
-                        return (false, $"Supplier name '{SelectedSupplierForForm.Name}' already exists.");
-                    }
-
-                    if (isNewSupplier)
-                    {
-                        await supplierService.AddSupplierAsync(SelectedSupplierForForm);
-                    }
-                    else
-                    {
-                        await supplierService.UpdateSupplierAsync(SelectedSupplierForForm);
-                    }
-
-                    await LoadSuppliersAsync(); // Reloads data with its own new scope
-                    ClearFormSelection();
-                    return (true, "Supplier saved successfully.");
+                    await _supplierService.AddSupplierAsync(SelectedSupplierForForm);
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Failed to save supplier.");
-                    ErrorMessage = $"An unexpected error occurred during save: {ex.Message}";
-                    return (false, ErrorMessage);
+                    await _supplierService.UpdateSupplierAsync(SelectedSupplierForForm);
                 }
-                finally
-                {
-                    IsBusy = false; OnAllPropertiesChanged();
-                }
+
+                await LoadSuppliersAsync();
+                ClearFormSelection();
+                return (true, "Save successful.");
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Save failed: {ex.Message}";
+                _logger.LogError(ex, ErrorMessage);
+                return (false, ErrorMessage);
+            }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
 
         public async Task<(bool Success, string Message)> DeleteSupplierAsync(int supplierId)
         {
-            IsBusy = true; ErrorMessage = string.Empty; OnAllPropertiesChanged();
-
-            using (var scope = _scopeFactory.CreateScope())
+            IsBusy = true; ErrorMessage = string.Empty;
+            try
             {
-                try
-                {
-                    var supplierService = scope.ServiceProvider.GetRequiredService<ISupplierService>();
-                    await supplierService.DeleteSupplierAsync(supplierId);
-
-                    await LoadSuppliersAsync();
-                    ClearFormSelection();
-                    return (true, "Supplier deleted successfully.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to delete supplier {SupplierId}", supplierId);
-                    ErrorMessage = $"Delete failed. The supplier may have products assigned to it.";
-                    return (false, ErrorMessage);
-                }
-                finally
-                {
-                    IsBusy = false; OnAllPropertiesChanged();
-                }
+                await _supplierService.DeleteSupplierAsync(supplierId);
+                await LoadSuppliersAsync();
+                ClearFormSelection();
+                return (true, "Supplier deleted successfully.");
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Delete failed: {ex.Message}";
+                _logger.LogError(ex, "Failed to delete supplier with ID {SupplierId}", supplierId);
+                return (false, ErrorMessage);
+            }
+            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
         }
         #endregion
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private void OnAllPropertiesChanged()
-        {
-            OnPropertyChanged(nameof(IsBusy));
-            OnPropertyChanged(nameof(ErrorMessage));
-            OnPropertyChanged(nameof(SelectedSupplierForForm));
-            OnPropertyChanged(nameof(SelectedSupplierGridItem));
         }
     }
 }
