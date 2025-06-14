@@ -1,100 +1,120 @@
-﻿// App.xaml.cs
+﻿// --- FULLY CORRECTED AND FINALIZED: App.xaml.cs ---
 using IMS_Group03.Controllers;
 using IMS_Group03.DataAccess;
-using IMS_Group03.DataAccess.Repositories; // Assuming this is where your repository interfaces and classes are
+using IMS_Group03.DataAccess.Repositories;
 using IMS_Group03.Services;
+using IMS_Group03.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
-using System.Threading.Tasks; // Not strictly needed here unless OnStartup becomes async for other reasons
 using System.Windows;
+// No need for System.Windows.Forms
+using MessageBox = System.Windows.MessageBox;
 
 namespace IMS_Group03
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
-        // Corrected static Configuration property
-        public static IConfiguration Configuration { get; private set; } = null!; // Initialize with null-forgiving
-
-        // ServiceProvider remains the same
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static IConfiguration Configuration { get; private set; } = null!;
 
-        public App()
+        protected override void OnStartup(StartupEventArgs e)
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory()) // Or AppContext.BaseDirectory
-                .AddJsonFile("Config/appsettings.json", optional: false, reloadOnChange: true);
-            Configuration = builder.Build(); // Assign to the static property
+            // This startup logic is already excellent and needs no changes.
+            try
+            {
+                base.OnStartup(e);
 
-            ServiceCollection services = new ServiceCollection();
-            ConfigureServices(services);
-            ServiceProvider = services.BuildServiceProvider();
+                var builder = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("Config/appsettings.json", optional: false, reloadOnChange: true);
+                Configuration = builder.Build();
+
+                var serviceCollection = new ServiceCollection();
+                ConfigureServices(serviceCollection);
+
+                ServiceProvider = serviceCollection.BuildServiceProvider();
+
+                // This is the correct way to start the application.
+                var loginWindow = ServiceProvider.GetRequiredService<LoginWindow>();
+                loginWindow.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"A critical error occurred on startup: {ex.Message}", "Fatal Error");
+                Current.Shutdown();
+            }
         }
 
         private void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton(Configuration); // Make IConfiguration instance available
-
+            // Configuration
+            services.AddSingleton(Configuration);
             string? connectionString = Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Database connection string 'DefaultConnection' not found in appsettings.json. Application will exit.",
-                                "Configuration Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Current.Shutdown(1);
-                return; // Stop further configuration
+                MessageBox.Show("Database connection string is missing.", "Error");
+                Current.Shutdown();
+                return;
             }
 
-            // Register DbContext ONCE
+            // --- FIX: The entire data access layer must share a scope to work correctly. ---
+            // DbContext is registered as Scoped by default. This ensures that within one
+            // scope, every class gets the *same* DbContext instance.
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(connectionString)
-            );
+                options.UseSqlServer(connectionString));
 
-            // Repositories (Ensure these interfaces and classes exist)
-            services.AddTransient<IProductRepository, ProductRepository>();
-            services.AddTransient<ISupplierRepository, SupplierRepository>();
-            services.AddTransient<IPurchaseOrderRepository, PurchaseOrderRepository>();
-            services.AddTransient<IStockMovementRepository, StockMovementRepository>();
-            services.AddTransient<IUserRepository, UserRepository>();
-            // services.AddTransient<IExpenseRepository, ExpenseRepository>();
+            // --- FIX: Repositories must be Scoped ---
+            // This ensures they receive the same scoped DbContext as the UnitOfWork.
+            services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+            services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
 
+            // --- FIX: The Unit of Work must be Scoped ---
+            // This is the orchestrator for a single, transactional operation.
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // Services (Ensure these interfaces and classes exist)
-            services.AddTransient<IProductService, ProductService>();
-            services.AddTransient<ISupplierService, SupplierService>();
-            services.AddTransient<IOrderService, OrderService>();
-            services.AddTransient<IStockMovementService, StockMovementService>();
-            services.AddTransient<IUserService, UserService>();
-            // services.AddTransient<IAuthService, AuthService>();
-            // services.AddTransient<IExpenseService, ExpenseService>();
+            // --- FIX: Services that use the Unit of Work must also be Scoped ---
+            // This allows them to be part of the same transaction.
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IStockMovementService, StockMovementService>();
 
-            // Controllers
-            services.AddTransient<MainController>();
-            services.AddTransient<ProductController>();
-            services.AddTransient<SupplierController>();
-            services.AddTransient<PurchaseOrderController>();
-            services.AddTransient<StockMovementController>();
+            // --- Controllers: Lifetimes are correct based on their role ---
+            // MainController is a Singleton because it holds the global state of the application.
+            services.AddSingleton<MainController>();
+
+            // Other controllers are Transient because we want a fresh instance for each new view/operation.
+            // They will be responsible for creating the scope for database work.
+            services.AddTransient<LoginController>();
             services.AddTransient<DashboardController>();
+            services.AddTransient<ProductController>();
+            services.AddTransient<PurchaseOrderController>();
+            services.AddTransient<SupplierController>();
+            services.AddTransient<StockMovementController>();
             services.AddTransient<ReportController>();
             services.AddTransient<UserSettingsController>();
-            // services.AddTransient<ExpensesController>();
 
-
-            // Windows & Views (Register if they have constructor dependencies or if you want to resolve them via DI)
+            // --- Windows and Views should always be Transient ---
+            // We want a new window/view instance every time we open one.
             services.AddTransient<MainWindow>();
-            services.AddTransient<LoginWindow>(); // If LoginWindow needs services
-            services.AddTransient<Views.DashboardView>();
-            services.AddTransient<Views.ProductView>();
-            services.AddTransient<Views.SupplierView>();
-            services.AddTransient<Views.PurchaseOrderView>();
-            services.AddTransient<Views.StockMovementView>();
-            services.AddTransient<Views.ReportView>();
-            services.AddTransient<Views.UserSettingsView>();
-            // services.AddTransient<Views.ExpensesView>();
+            services.AddTransient<LoginWindow>();
+            services.AddTransient<DashboardView>();
+            services.AddTransient<ProductView>();
+            services.AddTransient<SupplierView>();
+            services.AddTransient<PurchaseOrderView>();
+            services.AddTransient<StockMovementView>();
+            services.AddTransient<ReportView>();
+            services.AddTransient<UserSettingsView>();
 
-            // Logging
+            // Logging setup is correct.
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.ClearProviders();
@@ -102,25 +122,6 @@ namespace IMS_Group03
                 loggingBuilder.AddConsole();
                 loggingBuilder.AddDebug();
             });
-        }
-
-        protected override void OnStartup(StartupEventArgs e)
-        {
-            base.OnStartup(e);
-
-            // All DI setup is done in the constructor and ConfigureServices.
-            // ServiceProvider is now built and ready.
-
-            LoginWindow loginWindow = new LoginWindow(); // Create instance
-            // If LoginWindow itself was registered and had dependencies:
-            // LoginWindow loginWindow = ServiceProvider.GetService<LoginWindow>();
-            // if (loginWindow == null) { /* Handle error */ Current.Shutdown(1); return; }
-
-            loginWindow.Show();
-
-            // MainWindow will be created and shown by LoginWindow after successful authentication.
-            // LoginWindow will use App.ServiceProvider.GetService<MainWindow>() to create it,
-            // ensuring all its dependencies (like MainController) are injected.
         }
     }
 }

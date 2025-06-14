@@ -45,7 +45,6 @@
 
 	<ItemGroup>
 		<Folder Include="Assets\Images\" />
-		<Folder Include="Config\" />
 		<Folder Include="Utils\" />
 		<Folder Include="Styles\" />
 

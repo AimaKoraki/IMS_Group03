@@ -1,4 +1,4 @@
-﻿<!-- App.xaml -->
+﻿<!-- COMPLETE AND FINALIZED: App.xaml -->
 <Application x:Class="IMS_Group03.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,27 +6,16 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Core Resources First -->
+                <!-- Core foundation files FIRST -->
                 <ResourceDictionary Source="Styles/_Colors.xaml"/>
                 <ResourceDictionary Source="Styles/_Fonts.xaml"/>
 
-                <!-- Control-Specific Styles -->
-                <ResourceDictionary Source="Styles/TextBoxStyles.xaml"/>
-                <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
-                <ResourceDictionary Source="Styles/DataGridStyles.xaml"/>
-                <!-- <ResourceDictionary Source="Styles/ComboBoxStyles.xaml"/> -->
-                <!-- <ResourceDictionary Source="Styles/ValidationStyles.xaml"/> -->
-                <!-- Add other style files here -->
+                <!-- Component style files AFTER -->
                 <ResourceDictionary Source="Styles/_PanelStyles.xaml"/>
-                <ResourceDictionary Source="Styles/DatePickerStyles.xaml"/> 
-                <!-- Converters can also be here if you prefer them over x:Static or local resources -->
-                <!--
-                <ResourceDictionary>
-                    <converters:BooleanToVisibilityConverter x:Key="BoolToVis" xmlns:converters="clr-namespace:IMS_Group03.Converters"/>
-                    <converters:NullToVisibilityConverter x:Key="NullToVis" xmlns:converters="clr-namespace:IMS_Group03.Converters"/>
-                    <converters:InverseBooleanConverter x:Key="InvertBool" xmlns:converters="clr-namespace:IMS_Group03.Converters"/>
-                </ResourceDictionary>
-                -->
+                <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="Styles/TextBoxStyles.xaml"/>
+                <ResourceDictionary Source="Styles/DatePickerStyles.xaml"/>
+                <ResourceDictionary Source="Styles/DataGridStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

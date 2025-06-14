@@ -1,0 +1,76 @@
+<!-- Styles/DataGridStyles.xaml -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+
+    <Style x:Key="DefaultDataGridStyle" TargetType="{x:Type DataGrid}">
+        <Setter Property="Background" Value="{StaticResource PanelBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource DisabledBorderBrush}"/>
+        <Setter Property="VerticalGridLinesBrush" Value="{StaticResource DisabledBorderBrush}"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="RowHeaderWidth" Value="0"/>
+        <!-- Hide row headers -->
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="CanUserDeleteRows" Value="False"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <!-- Default, can be overridden -->
+        <Setter Property="AutoGenerateColumns" Value="False"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="AlternationCount" Value="2"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="FontFamily" Value="{StaticResource BaseFontFamily}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeNormal}"/>
+    </Style>
+
+    <Style x:Key="DefaultDataGridColumnHeaderStyle" TargetType="{x:Type DataGridColumnHeader}">
+        <Setter Property="Background" Value="{StaticResource DataGridHeaderBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+
+    <Style x:Key="DefaultDataGridRowStyle" TargetType="{x:Type DataGridRow}">
+        <Setter Property="Background" Value="{StaticResource DataGridRowBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="AlternationIndex" Value="1">
+                <Setter Property="Background" Value="{StaticResource DataGridAlternatingRowBackgroundBrush}"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource DataGridRowHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource DataGridRowSelectedBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DefaultDataGridCellStyle" TargetType="{x:Type DataGridCell}">
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <!-- Let row background show through -->
+        <Setter Property="BorderThickness" Value="0"/>
+        <!-- Remove default cell borders if row has them -->
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <!-- Background and Foreground are handled by DataGridRowStyle's IsSelected trigger -->
+                <!-- You can add specific cell selected styles here if needed, but often row style is enough -->
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Helper style for right-aligned text in DataGrid cells -->
+    <Style x:Key="RightAlignedTextCellStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
+        <!-- Add some right margin for padding -->
+    </Style>
+</ResourceDictionary>
