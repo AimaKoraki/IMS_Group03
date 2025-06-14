@@ -1,0 +1,100 @@
+﻿<!-- COMPLETE AND FINALIZED: MainWindow.xaml -->
+<Window x:Class="IMS_Group03.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:IMS_Group03"
+        xmlns:converters="clr-namespace:IMS_Group03.Converters"
+        Icon="/Assets/Images/icon.ico"
+        mc:Ignorable="d"
+        Title="{Binding StatusMessage, StringFormat='IMS - {0}'}" 
+        Height="850" Width="1500"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PrimaryBackgroundBrush}">
+
+    <Window.Resources>
+        <converters:EqualityToBooleanConverter x:Key="EqualityToBool" />
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource PanelBackgroundBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="20,30,20,30">
+
+                    <!-- The Border for the logo -->
+                    <Border Width="100"
+                            Height="100"
+                            CornerRadius="50" 
+                            HorizontalAlignment="Center"
+                            
+                            
+                  
+                            BorderThickness="2">
+
+                       
+                        <Border.Background>
+                            <ImageBrush ImageSource="/Assets/Images/logo.png" 
+                                        Stretch="UniformToFill" />
+                        </Border.Background>
+
+                    </Border>
+
+                    <TextBlock Text="{Binding WelcomeMessage}" Foreground="White" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                    <TextBlock Text="{Binding CurrentUser.Role, StringFormat='Role: {0}'}" Foreground="#AAAAAA" TextAlignment="Center" FontSize="14"/>
+
+                </StackPanel>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10,0">
+                    <StackPanel>
+                        <!-- FIX: All navigation buttons are now present and correctly configured -->
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Dashboard" Click="DashboardNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='DashboardView'}"/>
+
+                        <TextBlock Text="CORE MODULES" Foreground="#888888" Margin="20,20,0,5" />
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Products" Click="ProductsNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='ProductsView'}"/>
+
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Suppliers" Click="SuppliersNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='SuppliersView'}"/>
+
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Purchase Orders" Click="PurchaseOrdersNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='PurchaseOrdersView'}"/>
+
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Stock Movements" Click="StockMovementsNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='StockMovementsView'}"/>
+
+                        <TextBlock Text="ADMINISTRATION" Foreground="#888888" Margin="20,20,0,5" />
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Reports" Click="ReportsNavButton_Click"
+                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='ReportsView'}"/>
+
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" 
+                Content="User Settings" 
+                Click="UserSettingsNavButton_Click"
+                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='UserSettingsView'}"
+                
+
+                            Visibility="{Binding IsCurrentUserAdmin, Converter={StaticResource BoolToVis}}"
+                />
+
+                            <Button Style="{StaticResource LogoutButtonStyle}" Content="Logout" Margin="0,40,0,20" Click="LogoutButton_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Frame Grid.Column="1" x:Name="MainFrame" NavigationUIVisibility="Hidden" JournalOwnership="OwnsJournal" Margin="10,0,0,0"/>
+    </Grid>
+</Window>

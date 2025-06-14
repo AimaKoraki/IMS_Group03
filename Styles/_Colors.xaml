@@ -1,0 +1,117 @@
+<!-- Styles/_Colors.xaml -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Base Theme Colors -->
+    <Color x:Key="PrimaryBackgroundColor">#111111</Color>
+    <Color x:Key="SecondaryBackgroundColor">#1E1E1E</Color>
+    <Color x:Key="PanelBackgroundColor">#2B2B2B</Color>
+    <Color x:Key="PanelBackgroundHoverColor">#3C3C3C</Color>
+    <Color x:Key="PanelBackgroundPressedColor">#222222</Color>
+    <!-- ADDED: For panel-like pressed states -->
+    <Color x:Key="BorderColor">#555555</Color>
+    <Color x:Key="DisabledBorderColor">#444444</Color>
+    <Color x:Key="TextColor">#DDDDDD</Color>
+    <Color x:Key="SubtleTextColor">#AAAAAA</Color>
+    <Color x:Key="DisabledTextColor">#777777</Color>
+    <Color x:Key="LinkColor">#82C7FF</Color>
+    <Color x:Key="LinkHoverColor">#AADDFF</Color>
+    <Color x:Key="FormPanelBackgroundColor">#252525</Color>
+    <!-- Accent/Brand Colors -->
+    <Color x:Key="AccentColor1">#007ACC</Color>
+    <!-- Blue -->
+    <Color x:Key="AccentColor1Hover">#005A9E</Color>
+    <Color x:Key="AccentColor1Pressed">#004C8A</Color>
+
+    <Color x:Key="AccentColor2">#28A745</Color>
+    <!-- Green -->
+    <Color x:Key="AccentColor2Hover">#1F8235</Color>
+    <Color x:Key="AccentColor2Pressed">#1E7E34</Color>
+    <!-- ADDED: Darker Green for pressed -->
+
+    <Color x:Key="DangerColor">#D9534F</Color>
+    <!-- Red -->
+    <Color x:Key="DangerColorHover">#C9302C</Color>
+    <Color x:Key="DangerColorPressed">#B82B27</Color>
+    <!-- ADDED: Darker Red for pressed -->
+
+    <Color x:Key="WarningColor">#FFC107</Color>
+    <Color x:Key="SuccessColor">#28A745</Color>
+    <!-- Same as AccentColor2 -->
+
+    <!-- Specific Action/Button Colors (Moved from ButtonStyles.xaml) -->
+    <Color x:Key="AdjustmentButtonColor">#FF8C00</Color>
+    <!-- Orange for PerformAdjustmentButton -->
+    <Color x:Key="AdjustmentButtonHoverColor">#CC7000</Color>
+    <Color x:Key="AdjustmentButtonPressedColor">#B36200</Color>
+
+    <Color x:Key="LogoutButtonForegroundColor">#FF6347</Color>
+    <!-- Tomato Red for Logout Button Text -->
+    <Color x:Key="LogoutButtonHoverBackgroundColor">#553030</Color>
+    <!-- Dark Reddish for Logout Hover -->
+
+    <!-- Control Specific Colors -->
+    <Color x:Key="TextBoxBackgroundColor">#333333</Color>
+    <Color x:Key="DataGridHeaderBackgroundColor">#383838</Color>
+    <Color x:Key="DataGridRowBackgroundColor">#2B2B2B</Color>
+    <Color x:Key="DataGridAlternatingRowBackgroundColor">#313131</Color>
+    <Color x:Key="DataGridRowHoverBackgroundColor">#3F3F3F</Color>
+    <Color x:Key="DataGridRowSelectedBackgroundColor">#006AB0</Color>
+    <Color x:Key="DataGridCellSelectedBackgroundColor">#007ACC</Color>
+    <Color x:Key="PanelShadowColor">#444444</Color>
+    <Color x:Key="SidebarButtonPressedBackgroundColor">#505050</Color>
+    <!-- For SidebarNavigationButton pressed -->
+
+
+    <!-- Brushes based on Colors -->
+    <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackgroundColor}"/>
+    <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="{StaticResource PanelBackgroundColor}"/>
+    <SolidColorBrush x:Key="PanelBackgroundHoverBrush" Color="{StaticResource PanelBackgroundHoverColor}"/>
+    <SolidColorBrush x:Key="PanelBackgroundPressedBrush" Color="{StaticResource PanelBackgroundPressedColor}"/>
+    <SolidColorBrush x:Key="FormPanelBackgroundBrush" Color="{StaticResource FormPanelBackgroundColor}"/>
+    <!-- ADDED -->
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="DisabledBorderBrush" Color="{StaticResource DisabledBorderColor}"/>
+    <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
+    <SolidColorBrush x:Key="SubtleTextBrush" Color="{StaticResource SubtleTextColor}"/>
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="{StaticResource DisabledTextColor}"/>
+    <SolidColorBrush x:Key="LinkBrush" Color="{StaticResource LinkColor}"/>
+    <SolidColorBrush x:Key="LinkHoverBrush" Color="{StaticResource LinkHoverColor}"/>
+    <SolidColorBrush x:Key="Accent1Brush" Color="{StaticResource AccentColor1}"/>
+    <SolidColorBrush x:Key="Accent1HoverBrush" Color="{StaticResource AccentColor1Hover}"/>
+    <SolidColorBrush x:Key="Accent1PressedBrush" Color="{StaticResource AccentColor1Pressed}"/>
+
+    <SolidColorBrush x:Key="Accent2Brush" Color="{StaticResource AccentColor2}"/>
+    <SolidColorBrush x:Key="Accent2HoverBrush" Color="{StaticResource AccentColor2Hover}"/>
+    <SolidColorBrush x:Key="Accent2PressedBrush" Color="{StaticResource AccentColor2Pressed}"/>
+    <!-- ADDED -->
+
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="DangerHoverBrush" Color="{StaticResource DangerColorHover}"/>
+    <SolidColorBrush x:Key="DangerPressedBrush" Color="{StaticResource DangerColorPressed}"/>
+    <!-- ADDED -->
+
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+
+    <!-- Brushes for Specific Action/Button Colors -->
+    <SolidColorBrush x:Key="AdjustmentButtonBrush" Color="{StaticResource AdjustmentButtonColor}"/>
+    <SolidColorBrush x:Key="AdjustmentButtonHoverBrush" Color="{StaticResource AdjustmentButtonHoverColor}"/>
+    <SolidColorBrush x:Key="AdjustmentButtonPressedBrush" Color="{StaticResource AdjustmentButtonPressedColor}"/>
+    <SolidColorBrush x:Key="ModalOverlayBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}" Opacity="0.56"/>
+    <SolidColorBrush x:Key="LogoutButtonForegroundBrush" Color="{StaticResource LogoutButtonForegroundColor}"/>
+    <SolidColorBrush x:Key="LogoutButtonHoverBackgroundBrush" Color="{StaticResource LogoutButtonHoverBackgroundColor}"/>
+
+    <!-- Brushes for Control Specific Colors -->
+    <SolidColorBrush x:Key="TextBoxBackgroundBrush" Color="{StaticResource TextBoxBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackgroundBrush" Color="{StaticResource DataGridHeaderBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="{StaticResource DataGridRowBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridAlternatingRowBackgroundBrush" Color="{StaticResource DataGridAlternatingRowBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridRowHoverBrush" Color="{StaticResource DataGridRowHoverBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridRowSelectedBrush" Color="{StaticResource DataGridRowSelectedBackgroundColor}"/>
+    <SolidColorBrush x:Key="DataGridCellSelectedBrush" Color="{StaticResource DataGridCellSelectedBackgroundColor}"/>
+
+    <SolidColorBrush x:Key="SidebarButtonPressedBackgroundBrush" Color="{StaticResource SidebarButtonPressedBackgroundColor}"/>
+
+</ResourceDictionary>
