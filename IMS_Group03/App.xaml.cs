@@ -2,6 +2,7 @@
 using IMS_Group03.Controllers;
 using IMS_Group03.DataAccess;
 using IMS_Group03.DataAccess.Repositories;
+using IMS_Group03.Models; // Required for User model in SeedDatabase
 using IMS_Group03.Services;
 using IMS_Group03.Views;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Threading.Tasks; // Required for Task.Run
 using System.Windows;
-// No need for System.Windows.Forms
 using MessageBox = System.Windows.MessageBox;
 
 namespace IMS_Group03
@@ -23,7 +24,6 @@ namespace IMS_Group03
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // This startup logic is already excellent and needs no changes.
             try
             {
                 base.OnStartup(e);
@@ -35,16 +35,21 @@ namespace IMS_Group03
 
                 var serviceCollection = new ServiceCollection();
                 ConfigureServices(serviceCollection);
-
                 ServiceProvider = serviceCollection.BuildServiceProvider();
 
-                // This is the correct way to start the application.
+                // Seed the database with the first user if necessary.
+                // This is done BEFORE showing any window.
+                SeedDatabase(ServiceProvider);
+
+                // --- This is the correct startup sequence ---
+                // Show the LoginWindow first. The LoginWindow itself will be responsible
+                // for showing the MainWindow after a successful login.
                 var loginWindow = ServiceProvider.GetRequiredService<LoginWindow>();
                 loginWindow.Show();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"A critical error occurred on startup: {ex.Message}", "Fatal Error");
+                MessageBox.Show($"A critical error occurred on startup: {ex.Message}\n\nCheck database connection and configuration.", "Fatal Error");
                 Current.Shutdown();
             }
         }
@@ -56,44 +61,34 @@ namespace IMS_Group03
             string? connectionString = Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Database connection string is missing.", "Error");
+                MessageBox.Show("Database connection string is missing from appsettings.json.", "Configuration Error");
                 Current.Shutdown();
                 return;
             }
 
-            // --- FIX: The entire data access layer must share a scope to work correctly. ---
-            // DbContext is registered as Scoped by default. This ensures that within one
-            // scope, every class gets the *same* DbContext instance.
+            // DbContext is Scoped by default with AddDbContext.
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
-            // --- FIX: Repositories must be Scoped ---
-            // This ensures they receive the same scoped DbContext as the UnitOfWork.
+            // Scoped Data Access Layer
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ISupplierRepository, SupplierRepository>();
             services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
             services.AddScoped<IStockMovementRepository, StockMovementRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
-
-            // --- FIX: The Unit of Work must be Scoped ---
-            // This is the orchestrator for a single, transactional operation.
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // --- FIX: Services that use the Unit of Work must also be Scoped ---
-            // This allows them to be part of the same transaction.
+            // Scoped Business Logic Services
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ISupplierService, SupplierService>();
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IStockMovementService, StockMovementService>();
 
-            // --- Controllers: Lifetimes are correct based on their role ---
-            // MainController is a Singleton because it holds the global state of the application.
+            // Singleton Global Controller
             services.AddSingleton<MainController>();
 
-            // Other controllers are Transient because we want a fresh instance for each new view/operation.
-            // They will be responsible for creating the scope for database work.
-            services.AddTransient<LoginController>();
+            // Transient Page/View Controllers
             services.AddTransient<DashboardController>();
             services.AddTransient<ProductController>();
             services.AddTransient<PurchaseOrderController>();
@@ -102,10 +97,11 @@ namespace IMS_Group03
             services.AddTransient<ReportController>();
             services.AddTransient<UserSettingsController>();
 
-            // --- Windows and Views should always be Transient ---
-            // We want a new window/view instance every time we open one.
+            // --- FIX: Add LoginController registration ---
+            services.AddTransient<LoginController>();
+
+            // Transient Windows and Views
             services.AddTransient<MainWindow>();
-            services.AddTransient<LoginWindow>();
             services.AddTransient<DashboardView>();
             services.AddTransient<ProductView>();
             services.AddTransient<SupplierView>();
@@ -114,7 +110,10 @@ namespace IMS_Group03
             services.AddTransient<ReportView>();
             services.AddTransient<UserSettingsView>();
 
-            // Logging setup is correct.
+            // --- FIX: Add LoginWindow registration ---
+            services.AddTransient<LoginWindow>();
+
+            // Logging setup
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.ClearProviders();
@@ -122,6 +121,47 @@ namespace IMS_Group03
                 loggingBuilder.AddConsole();
                 loggingBuilder.AddDebug();
             });
+        }
+
+        /// <summary>
+        /// Seeds the database with an initial admin user if one does not exist.
+        /// This method should only run in a development environment.
+        /// </summary>
+        private void SeedDatabase(IServiceProvider serviceProvider)
+        {
+#if DEBUG // This preprocessor directive ensures this code is only compiled in Debug builds.
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+
+                // We use GetAwaiter().GetResult() to run the async method synchronously on startup.
+                // This is one of the few places where blocking is acceptable because the app can't start without this check.
+                var adminExists = Task.Run(() => userService.GetUserByUsernameAsync("admin")).GetAwaiter().GetResult();
+
+                if (adminExists == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("--> No admin user found. Seeding initial admin user...");
+                    var adminUser = new User
+                    {
+                        Username = "admin",
+                        FullName = "Administrator",
+                        Role = "Admin",
+                        IsActive = true
+                    };
+
+                    // Create the user with a default password.
+                    var (success, _, message) = Task.Run(() => userService.CreateUserAsync(adminUser, "123")).GetAwaiter().GetResult();
+                    if (success)
+                    {
+                        System.Diagnostics.Debug.WriteLine("--> Seeded initial admin user with password '123' successfully.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"--> FAILED to seed admin user: {message}");
+                    }
+                }
+            }
+#endif
         }
     }
 }

@@ -1,52 +1,69 @@
-<!-- COMPLETE AND FINALIZED: LoginWindow.xaml -->
-<Window x:Class="IMS_Group03.LoginWindow"
+﻿<!-- FULLY CORRECTED AND FINALIZED: Views/LoginWindow.xaml -->
+<Window x:Class="IMS_Group03.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IMS_Group03"
+        xmlns:local="clr-namespace:IMS_Group03.Views"
+        xmlns:ctrl="clr-namespace:IMS_Group03.Controllers"
         xmlns:converters="clr-namespace:IMS_Group03.Converters"
         mc:Ignorable="d"
-        Title="Login - Inventory Management System" Height="500" Width="420"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
-        WindowStyle="SingleBorderWindow" Background="{StaticResource PrimaryBackgroundBrush}"
-        KeyDown="Window_KeyDown">
+        d:DataContext="{d:DesignInstance Type=ctrl:LoginController, IsDesignTimeCreatable=False}"
+        Title="Inventory Management System - Login" 
+        Height="550" Width="450"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent">
 
     <Window.Resources>
-        <!-- Converters needed for binding UI state -->
-        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:InverseBooleanConverter x:Key="InvertBool" />
-        <converters:NullToVisibilityConverter x:Key="NullToVis" />
+        <ResourceDictionary>
+            <converters:BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <converters:NullToVisibilityConverter x:Key="NullToVis"/>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <Grid>
-        <Border Style="{StaticResource LoginPanelStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" Width="380">
-            <StackPanel>
-                <TextBlock Text="Store Management" Style="{StaticResource LoginTitleStyle}"/>
-                <TextBlock Text="Sign in to your account" Style="{StaticResource LoginSubtitleStyle}"/>
+    <!-- This allows a custom window shape and dropshadow -->
+    <Border Background="{StaticResource PrimaryBackgroundBrush}" CornerRadius="10" Padding="1">
+        <Border Background="{StaticResource PanelBackgroundBrush}" CornerRadius="9">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <TextBlock Text="Username" Style="{StaticResource LabelStyleDark}"/>
-                <!-- Bind the Text property to the Username property on the controller -->
-                <TextBox x:Name="UsernameTextBox" Style="{StaticResource TextBoxDarkStyle}" Margin="0,0,0,15" TabIndex="0"
-                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+                <!-- Title Bar for dragging the window -->
+                <Border Grid.Row="0" Background="Transparent" MouseDown="TitleBar_MouseDown" CornerRadius="9,9,0,0" Height="40">
+                    <Button Content="" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                            Width="40" Height="40" Background="Transparent" Foreground="White" BorderThickness="0"
+                            Click="CloseButton_Click" ToolTip="Close Application"/>
+                </Border>
 
-                <TextBlock Text="Password" Style="{StaticResource LabelStyleDark}"/>
-                <PasswordBox x:Name="PasswordInputBox" Style="{StaticResource PasswordBoxDarkStyle}" Margin="0,0,0,20" TabIndex="1"/>
+                <StackPanel Grid.Row="1" Margin="40,0,40,40" VerticalAlignment="Center">
+                    <TextBlock Text="Welcome Back" Style="{StaticResource LoginTitleStyle}" />
+                    <TextBlock Text="Please sign in to continue" Style="{StaticResource LoginSubtitleStyle}"/>
 
-                <!-- Error message is now bound to the controller's ErrorMessage property -->
-                <TextBlock Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" MinHeight="20" Margin="0,0,0,10"
-                           Text="{Binding ErrorMessage}"
-                           Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}"/>
+                    <TextBlock Text="Username" Style="{StaticResource LabelStyleDark}"/>
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxDarkStyle}" Margin="0,0,0,15"/>
 
-                <!-- Login button is disabled when the controller is busy -->
-                <Button x:Name="LoginBtn" Content="Login" Style="{StaticResource PrimaryActionButtonStyle}" Click="LoginButton_Click" Margin="0,10,0,8" TabIndex="2"
-                        IsEnabled="{Binding IsBusy, Converter={StaticResource InvertBool}}"/>
+                    <TextBlock Text="Password" Style="{StaticResource LabelStyleDark}"/>
+                    <PasswordBox x:Name="UserPasswordBox" Style="{StaticResource PasswordBoxDarkStyle}" Margin="0,0,0,25"/>
 
-                <Button Content="Cancel" Style="{StaticResource SecondaryActionButtonStyle}" Click="CancelButton_Click" TabIndex="3"/>
-            </StackPanel>
+                    <!-- Error Message Display -->
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,0,0,10"
+                               TextWrapping="Wrap" Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}"/>
+
+                    <Button Content="Login" Style="{StaticResource PrimaryActionButtonStyle}" Click="LoginButton_Click" IsDefault="True"/>
+                </StackPanel>
+
+                <!-- Loading Overlay -->
+                <Border Grid.Row="1" Background="{StaticResource ModalOverlayBackgroundBrush}" CornerRadius="9"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="50" Height="50" Foreground="{StaticResource Accent1Brush}"/>
+                        <TextBlock Text="Authenticating..." Foreground="{StaticResource TextBrush}" FontSize="16" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
-
-        <!-- Loading overlay, consistent with DashboardView -->
-
-    </Grid>
+    </Border>
 </Window>
