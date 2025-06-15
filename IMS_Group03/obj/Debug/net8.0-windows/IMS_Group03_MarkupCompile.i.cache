@@ -16,5 +16,5 @@ C:\Users\panth\Documents\GitHub\IMS_Group03\IMS_Group03\App.xaml
 259-377538271
 MainWindow.xaml;Styles\ButtonStyles.xaml;Styles\DataGridStyles.xaml;Styles\DatePickerStyles.xaml;Styles\TextBoxStyles.xaml;Styles\_Colors.xaml;Styles\_Fonts.xaml;Styles\_PanelStyles.xaml;Views\DashboardView.xaml;Views\LoginWindow.xaml;Views\ProductView.xaml;Views\PurchaseOrderView.xaml;Views\ReportView.xaml;Views\StockMovementView.xaml;Views\SupplierView.xaml;Views\UserSettingsView.xaml;
 
-True
+False
 
