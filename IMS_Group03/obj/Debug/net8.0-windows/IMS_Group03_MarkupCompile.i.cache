@@ -9,12 +9,12 @@ IMS_Group03
 none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-
-171972312929
+C:\Users\panth\Documents\GitHub\IMS_Group03\IMS_Group03\App.xaml
+16179329405
 
 711255149516
 259-377538271
-App.xaml;MainWindow.xaml;Styles\ButtonStyles.xaml;Styles\DataGridStyles.xaml;Styles\DatePickerStyles.xaml;Styles\TextBoxStyles.xaml;Styles\_Colors.xaml;Styles\_Fonts.xaml;Styles\_PanelStyles.xaml;Views\DashboardView.xaml;Views\LoginWindow.xaml;Views\ProductView.xaml;Views\PurchaseOrderView.xaml;Views\ReportView.xaml;Views\StockMovementView.xaml;Views\SupplierView.xaml;Views\UserSettingsView.xaml;
+MainWindow.xaml;Styles\ButtonStyles.xaml;Styles\DataGridStyles.xaml;Styles\DatePickerStyles.xaml;Styles\TextBoxStyles.xaml;Styles\_Colors.xaml;Styles\_Fonts.xaml;Styles\_PanelStyles.xaml;Views\DashboardView.xaml;Views\LoginWindow.xaml;Views\ProductView.xaml;Views\PurchaseOrderView.xaml;Views\ReportView.xaml;Views\StockMovementView.xaml;Views\SupplierView.xaml;Views\UserSettingsView.xaml;
 
-False
+True
 
