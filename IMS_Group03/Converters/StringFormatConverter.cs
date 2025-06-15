@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/StringFormatConverter.cs ---
+﻿// ---  Converters/StringFormatConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows.Data;

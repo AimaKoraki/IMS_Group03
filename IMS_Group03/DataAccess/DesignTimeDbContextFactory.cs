@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using System.IO;
-// Add 'using YourProjectNamespace.DataAccess;' if AppDbContext is in a sub-namespace
 
-namespace IMS_Group03.DataAccess // Or whatever namespace your AppDbContext is in
+
+namespace IMS_Group03.DataAccess 
 {
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     {

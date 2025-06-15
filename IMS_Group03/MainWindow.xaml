@@ -1,18 +1,21 @@
-﻿<!-- COMPLETE AND FINALIZED: MainWindow.xaml -->
-<Window x:Class="IMS_Group03.MainWindow"
+﻿<Window x:Class="IMS_Group03.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IMS_Group03"
         xmlns:converters="clr-namespace:IMS_Group03.Converters"
+        xmlns:ctrl="clr-namespace:IMS_Group03.Controllers"
+        xmlns:views="clr-namespace:IMS_Group03.Views"
         mc:Ignorable="d"
         Title="{Binding StatusMessage, StringFormat='IMS - {0}'}" 
-        Height="850" Width="1500"
+        Height="850" Width="1755"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource PrimaryBackgroundBrush}">
+        Background="{StaticResource PrimaryBackgroundBrush}"
+        Icon="/Assets/Images/icon.ico">
 
     <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <converters:EqualityToBooleanConverter x:Key="EqualityToBool" />
     </Window.Resources>
 
@@ -25,42 +28,49 @@
         <!-- Sidebar -->
         <Border Grid.Column="0" Background="{StaticResource PanelBackgroundBrush}">
             <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="21*"/>
+                    <ColumnDefinition Width="36*"/>
+                    <ColumnDefinition Width="223*"/>
+                </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Margin="20,30,20,30">
-                    <Ellipse Width="100" Height="100" Fill="#555555"/>
+                <StackPanel Grid.Row="0" Margin="20,30,20,30" Grid.ColumnSpan="3">
+                    <Border Width="100"
+                            Height="100"
+                            CornerRadius="50" 
+                            HorizontalAlignment="Center"
+                            BorderBrush="{StaticResource Accent1Brush}"
+                            BorderThickness="2">
+                        <Border.Background>
+                            <ImageBrush ImageSource="/Assets/Images/logo.png" Stretch="UniformToFill" />
+                        </Border.Background>
+                    </Border>
                     <TextBlock Text="{Binding WelcomeMessage}" Foreground="White" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="0,15,0,5"/>
                     <TextBlock Text="{Binding CurrentUser.Role, StringFormat='Role: {0}'}" Foreground="#AAAAAA" TextAlignment="Center" FontSize="14"/>
                 </StackPanel>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0" Grid.ColumnSpan="3" Margin="0,225,0,0" Grid.RowSpan="2">
                     <StackPanel>
-                        <!-- FIX: All navigation buttons are now present and correctly configured -->
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Dashboard" Click="DashboardNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='DashboardView'}"/>
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Dashboard" Click="DashboardNavButton_Click" />
 
                         <TextBlock Text="CORE MODULES" Foreground="#888888" Margin="20,20,0,5" />
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Products" Click="ProductsNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='ProductsView'}"/>
-
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Suppliers" Click="SuppliersNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='SuppliersView'}"/>
-
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Purchase Orders" Click="PurchaseOrdersNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='PurchaseOrdersView'}"/>
-
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Stock Movements" Click="StockMovementsNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='StockMovementsView'}"/>
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Products" Click="ProductsNavButton_Click" />
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Suppliers" Click="SuppliersNavButton_Click" />
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Purchase Orders" Click="PurchaseOrdersNavButton_Click" />
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Stock Movements" Click="StockMovementsNavButton_Click" />
 
                         <TextBlock Text="ADMINISTRATION" Foreground="#888888" Margin="20,20,0,5" />
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Reports" Click="ReportsNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='ReportsView'}"/>
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="Reports" Click="ReportsNavButton_Click" />
 
-                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" Content="User Settings" Click="UserSettingsNavButton_Click"
-                                Tag="{Binding CurrentViewIdentifier, Converter={StaticResource EqualityToBool}, ConverterParameter='UserSettingsView'}"/>
+                        <!-- The User Settings button is correctly bound for visibility -->
+                        <Button Style="{StaticResource SidebarNavigationButtonStyle}" 
+                                Content="User Settings" 
+                                Click="UserSettingsNavButton_Click"
+                                Visibility="{Binding IsCurrentUserAdmin, Converter={StaticResource BoolToVis}}"/>
 
                         <Button Style="{StaticResource LogoutButtonStyle}" Content="Logout" Margin="0,40,0,20" Click="LogoutButton_Click"/>
                     </StackPanel>
@@ -68,7 +78,33 @@
             </Grid>
         </Border>
 
-        <!-- Main Content Area -->
-        <Frame Grid.Column="1" x:Name="MainFrame" NavigationUIVisibility="Hidden" JournalOwnership="OwnsJournal" Margin="10,0,0,0"/>
+
+        <ContentControl Grid.Column="1" Margin="0,0,10,0"
+                        Content="{Binding CurrentPageController}">
+            <ContentControl.Resources>
+                <!-- This is the 'ViewModel-First' navigation magic. It maps a Controller Type to a View Type. -->
+                <DataTemplate DataType="{x:Type ctrl:DashboardController}">
+                    <views:DashboardView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:ProductController}">
+                    <views:ProductView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:SupplierController}">
+                    <views:SupplierView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:PurchaseOrderController}">
+                    <views:PurchaseOrderView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:StockMovementController}">
+                    <views:StockMovementView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:ReportController}">
+                    <views:ReportView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type ctrl:UserSettingsController}">
+                    <views:UserSettingsView/>
+                </DataTemplate>
+            </ContentControl.Resources>
+        </ContentControl>
     </Grid>
 </Window>

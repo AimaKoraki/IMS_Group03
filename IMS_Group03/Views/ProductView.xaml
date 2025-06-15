@@ -138,8 +138,7 @@
                    Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}" MinHeight="20"/>
 
         <!-- MODIFIED: Background, ProgressBar.Foreground, TextBlock.Foreground & FontSize -->
-        <Border Grid.RowSpan="4" x:Name="LoadingOverlay"
-                Background="{StaticResource ModalOverlayBackgroundBrush}"
+        <Border Grid.RowSpan="4" Background="{StaticResource ModalOverlayBackgroundBrush}" x:Name="LoadingOverlay"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar IsIndeterminate="True" Width="60" Height="60" Foreground="{StaticResource Accent1Brush}"/>

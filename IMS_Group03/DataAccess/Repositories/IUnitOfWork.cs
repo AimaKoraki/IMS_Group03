@@ -1,4 +1,4 @@
-﻿// --- FINAL GUARANTEED VERSION: IUnitOfWork.cs ---
+﻿// --- IUnitOfWork.cs ---
 using System;
 using System.Threading.Tasks;
 

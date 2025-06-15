@@ -1,9 +1,10 @@
-﻿// --- CORRECTED AND FINALIZED: Controllers/DashboardController.cs ---
-using IMS_Group03.Config; // To reference the AppSettings class
+﻿// ---  Controllers/DashboardController.cs ---
+using IMS_Group03.Config;
 using IMS_Group03.Models;
 using IMS_Group03.Services;
-using Microsoft.Extensions.Logging;    // For ILogger
-using Microsoft.Extensions.Options;  // For IOptions
+using Microsoft.Extensions.DependencyInjection; 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -15,13 +16,13 @@ namespace IMS_Group03.Controllers
 {
     public class DashboardController : INotifyPropertyChanged
     {
-        private readonly IProductService _productService;
-        private readonly ISupplierService _supplierService;
-        private readonly IOrderService _orderService;
-        private readonly ILogger<DashboardController> _logger; // IMPROVEMENT: Injected logger
-        private readonly int _lowStockThreshold;               // IMPROVEMENT: Will be set from config
 
-        #region Properties (Your code is correct here)
+
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<DashboardController> _logger;
+        private readonly int _lowStockThreshold;
+
+        #region Properties (Your existing properties are perfect and unchanged)
         public int TotalProducts { get; private set; }
         public int TotalSuppliers { get; private set; }
         public int LowStockItemsCount { get; private set; }
@@ -33,77 +34,85 @@ namespace IMS_Group03.Controllers
         public event PropertyChangedEventHandler? PropertyChanged;
         #endregion
 
-        // IMPROVEMENT: Constructor now injects ILogger and IOptions<AppSettings>
+
         public DashboardController(
-            IProductService productService,
-            ISupplierService supplierService,
-            IOrderService orderService,
+            IServiceScopeFactory scopeFactory, 
             ILogger<DashboardController> logger,
-            IOptions<AppSettings> appSettings) // Gets the "AppSettings" section from your json
+            IOptions<AppSettings> appSettings)
         {
-            _productService = productService;
-            _supplierService = supplierService;
-            _orderService = orderService;
+            _scopeFactory = scopeFactory;
             _logger = logger;
-
-            // Set the threshold from the configuration file.
             _lowStockThreshold = appSettings.Value.DefaultLowStockThreshold;
-
-   
         }
 
+        
         public async Task LoadDashboardDataAsync()
         {
-            IsBusy = true;
-            OnPropertyChanged(nameof(IsBusy));
-            ErrorMessage = string.Empty;
-            OnPropertyChanged(nameof(ErrorMessage));
+            IsBusy = true; ErrorMessage = string.Empty;
+            OnAllPropertiesChanged();
 
-            try
+            using (var scope = _scopeFactory.CreateScope())
             {
-                // Your excellent parallel loading logic is preserved.
-                var productsTask = _productService.GetAllProductsAsync();
-                var suppliersTask = _supplierService.GetAllSuppliersAsync();
-                var lowStockTask = _productService.GetLowStockProductsAsync(_lowStockThreshold);
-                var pendingOrdersTask = _orderService.GetOrdersByStatusAsync(OrderStatus.Pending);
+                try
+                {
+                    var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+                    var supplierService = scope.ServiceProvider.GetRequiredService<ISupplierService>();
+                    var orderService = scope.ServiceProvider.GetRequiredService<IOrderService>();
 
-                await Task.WhenAll(productsTask, suppliersTask, lowStockTask, pendingOrdersTask);
+                    
 
-                TotalProducts = (await productsTask).Count();
-                TotalSuppliers = (await suppliersTask).Count();
-                var lowStockItems = await lowStockTask;
-                var pendingOrders = await pendingOrdersTask;
+                    // 1. Await the first task.
+                    var products = await productService.GetAllProductsAsync();
 
-                LowStockItemsCount = lowStockItems.Count();
-                LowStockPreview.Clear();
-                foreach (var item in lowStockItems.Take(5)) { LowStockPreview.Add(item); }
+                    // 2. Await the second task.
+                    var suppliers = await supplierService.GetAllSuppliersAsync();
 
-                PendingPurchaseOrders = pendingOrders.Count();
-                RecentPendingOrdersPreview.Clear();
-                foreach (var item in pendingOrders.OrderByDescending(o => o.OrderDate).Take(5)) { RecentPendingOrdersPreview.Add(item); }
-            }
-            catch (Exception ex)
-            {
-                // IMPROVEMENT: Use the injected logger for structured error logging.
-                _logger.LogError(ex, "Failed to load dashboard data.");
-                ErrorMessage = "Failed to load dashboard data. Please try again later.";
-            }
-            finally
-            {
-                IsBusy = false;
-                OnPropertyChanged(nameof(IsBusy));
-                // Manually trigger OnPropertyChanged for all updated properties
-                OnPropertyChanged(nameof(TotalProducts));
-                OnPropertyChanged(nameof(TotalSuppliers));
-                OnPropertyChanged(nameof(LowStockItemsCount));
-                OnPropertyChanged(nameof(PendingPurchaseOrders));
-                OnPropertyChanged(nameof(ErrorMessage));
+                    // 3. Await the third task.
+                    var lowStockItems = await productService.GetLowStockProductsAsync(_lowStockThreshold);
+
+                    // 4. Await the fourth task.
+                    var pendingOrders = await orderService.GetOrdersByStatusAsync(OrderStatus.Pending);
+
+                    // Now that all data is safely loaded, update the UI properties.
+                    TotalProducts = products.Count();
+                    TotalSuppliers = suppliers.Count();
+                    LowStockItemsCount = lowStockItems.Count();
+                    PendingPurchaseOrders = pendingOrders.Count();
+
+                    LowStockPreview.Clear();
+                    foreach (var item in lowStockItems.Take(5)) { LowStockPreview.Add(item); }
+
+                    RecentPendingOrdersPreview.Clear();
+                    foreach (var item in pendingOrders.OrderByDescending(o => o.OrderDate).Take(5)) { RecentPendingOrdersPreview.Add(item); }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to load dashboard data.");
+                    ErrorMessage = "A database error occurred while loading dashboard data.";
+                }
+                finally
+                {
+                    IsBusy = false;
+                    OnAllPropertiesChanged();
+                }
             }
         }
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// Helper method to simplify notifying the UI of all property changes after a load operation.
+        /// </summary>
+        private void OnAllPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(ErrorMessage));
+            OnPropertyChanged(nameof(TotalProducts));
+            OnPropertyChanged(nameof(TotalSuppliers));
+            OnPropertyChanged(nameof(LowStockItemsCount));
+            OnPropertyChanged(nameof(PendingPurchaseOrders));
         }
     }
 }

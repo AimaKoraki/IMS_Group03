@@ -1,10 +1,8 @@
-﻿// --- CORRECTED AND FINALIZED: DataAccess/Repositories/UserRepository.cs ---
+﻿// ---DataAccess/Repositories/UserRepository.cs ---
 using IMS_Group03.DataAccess;
 using IMS_Group03.Models;
 using Microsoft.EntityFrameworkCore;
-using System; // For StringComparison
-using System.Linq;
-using System.Threading.Tasks;
+// using System; // No longer needed for StringComparison
 
 namespace IMS_Group03.DataAccess.Repositories
 {
@@ -15,24 +13,31 @@ namespace IMS_Group03.DataAccess.Repositories
         public async Task<User?> GetByUsernameAsync(string username)
         {
             if (string.IsNullOrWhiteSpace(username)) return null;
-            // FIX: Use a method that translates to an index-friendly query.
+
+            // Convert both sides to uppercase for a case-insensitive, translatable query.
+            var upperUsername = username.ToUpper();
             return await _context.Users
-                .FirstOrDefaultAsync(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefaultAsync(u => u.Username.ToUpper() == upperUsername);
         }
 
         public async Task<User?> GetByEmailAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email)) return null;
-            // FIX: Use a method that translates to an index-friendly query.
+
+            // Convert both sides to uppercase for a case-insensitive, translatable query.
+            var upperEmail = email.ToUpper();
             return await _context.Users
-                .FirstOrDefaultAsync(u => u.Email != null && u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToUpper() == upperEmail);
         }
 
         public async Task<bool> UsernameExistsAsync(string username, int? currentUserId = null)
         {
             if (string.IsNullOrWhiteSpace(username)) return false;
-            // FIX: Use a method that translates to an index-friendly query.
-            var query = _context.Users.Where(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+
+            //  Convert both sides to uppercase for a case-insensitive, translatable query.
+            var upperUsername = username.ToUpper();
+            var query = _context.Users.Where(u => u.Username.ToUpper() == upperUsername);
+
             if (currentUserId.HasValue)
             {
                 query = query.Where(u => u.Id != currentUserId.Value);
@@ -43,8 +48,11 @@ namespace IMS_Group03.DataAccess.Repositories
         public async Task<bool> EmailExistsAsync(string email, int? currentUserId = null)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;
-            // FIX: Use a method that translates to an index-friendly query.
-            var query = _context.Users.Where(u => u.Email != null && u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+            // Convert both sides to uppercase for a case-insensitive, translatable query.
+            var upperEmail = email.ToUpper();
+            var query = _context.Users.Where(u => u.Email != null && u.Email.ToUpper() == upperEmail);
+
             if (currentUserId.HasValue)
             {
                 query = query.Where(u => u.Id != currentUserId.Value);

@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Services/StockMovementService.cs ---
+﻿// ---  Services/StockMovementService.cs ---
 using IMS_Group03.DataAccess.Repositories;
 using IMS_Group03.Models;
 using Microsoft.Extensions.Logging;

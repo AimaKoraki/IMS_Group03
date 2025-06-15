@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/CollectionToVisibilityConverter.cs ---
+﻿// ---Converters/CollectionToVisibilityConverter.cs ---
 using System;
 using System.Collections;
 using System.Globalization;

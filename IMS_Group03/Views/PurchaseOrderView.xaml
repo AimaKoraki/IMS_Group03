@@ -68,16 +68,12 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="Edit" Style="{StaticResource SmallLinkButtonStyle}" Click="EditOrderButton_Click" CommandParameter="{Binding}"/>
-                                <!-- MODIFIED: Used SuccessLinkButtonStyle or set Foreground with global brush -->
-                                <Button Content="Receive" Margin="5,0"
-                                        Style="{StaticResource SmallLinkButtonStyle}"
-                                        Foreground="{StaticResource Accent2Brush}"
+
+                                <Button Content="Receive" Style="{StaticResource SuccessActionButtonStyle}" Margin="5,0"
                                         Click="ReceiveOrderButton_Click" CommandParameter="{Binding}"
                                         Visibility="{Binding Status, Converter={StaticResource OrderStatusToReceiveVisibilityConverter}}"/>
-                                <!-- MODIFIED: Used DangerLinkButtonStyle or set Foreground with global brush -->
-                                <Button Content="Cancel PO"
-                                        Style="{StaticResource SmallLinkButtonStyle}"
-                                        Foreground="{StaticResource DangerBrush}"
+                                
+                                <Button Content="Cancel PO" Style="{StaticResource DangerActionButtonStyle}"
                                         Click="CancelPoButton_Click" CommandParameter="{Binding}"
                                         Visibility="{Binding Status, Converter={StaticResource OrderStatusToCancelVisibilityConverter}}"/>
                             </StackPanel>
@@ -185,8 +181,8 @@
                         <DataGridTemplateColumn Width="Auto">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <!-- MODIFIED: Used DangerLinkButtonStyle or specific Foreground -->
-                                    <Button Content="Remove" Style="{StaticResource DangerLinkButtonStyle}"
+                                    
+                                    <Button Content="Remove" Style="{StaticResource DangerActionButtonStyle}"
                                             Click="RemoveItemButton_Click" CommandParameter="{Binding}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

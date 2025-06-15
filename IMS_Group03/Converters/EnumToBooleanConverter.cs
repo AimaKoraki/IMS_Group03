@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/EnumToBooleanConverter.cs ---
+﻿// --- Converters/EnumToBooleanConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows.Data;

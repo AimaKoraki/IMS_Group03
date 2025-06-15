@@ -44,14 +44,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Assets\Images\" />
-		<Folder Include="Utils\" />
-		<Folder Include="Styles\" />
-
-		<!-- Ensure Converters, Controllers, DataAccess, Models, Services, Views folders also exist as needed -->
-	</ItemGroup>
-
-	<ItemGroup>
 		<None Update="Config\appsettings.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>

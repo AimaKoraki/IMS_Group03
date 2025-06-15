@@ -1,4 +1,4 @@
-﻿// --- COMPLETE AND FINALIZED: Converters/ZeroToVisibilityCollapsedConverter.cs ---
+﻿// --- Converters/ZeroToVisibilityCollapsedConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows;

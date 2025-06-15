@@ -1,4 +1,4 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Converters/InverseBooleanConverter.cs ---
+﻿// ---  Converters/InverseBooleanConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows.Data;

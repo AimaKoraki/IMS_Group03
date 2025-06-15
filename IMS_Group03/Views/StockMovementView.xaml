@@ -115,6 +115,8 @@
                 <TextBox Grid.Row="0" Grid.Column="3" x:Name="AdjustmentQuantityTextBox" Margin="0,0,0,10" Style="{StaticResource TextBoxDarkStyle}"
                          Text="{Binding AdjustmentNewQuantityInput, UpdateSourceTrigger=PropertyChanged}"/>
 
+
+
                 <TextBlock Grid.Row="1" Grid.Column="2" Text="Reason:" Style="{StaticResource LabelStyleDark}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="1" x:Name="AdjustmentReasonTextBox" Margin="0,0,0,10" Style="{StaticResource TextBoxDarkStyle}"
                          Text="{Binding AdjustmentReason, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="40"/>

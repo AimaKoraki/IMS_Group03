@@ -1,4 +1,4 @@
-﻿// --- FINALIZED & CORRECT: DataAccess/Repositories/IStockMovementRepository.cs ---
+﻿// --- DataAccess/Repositories/IStockMovementRepository.cs ---
 using IMS_Group03.Models;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace IMS_Group03.DataAccess.Repositories
         Task<IEnumerable<StockMovement>> GetMovementsByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<IEnumerable<StockMovement>> GetMovementsByTypeAsync(MovementType movementType);
 
-        // This method is now fully supported by the corrected model
+        
         Task<IEnumerable<StockMovement>> GetMovementsForPurchaseOrderItemAsync(int purchaseOrderItemId);
     }
 }

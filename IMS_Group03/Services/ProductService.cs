@@ -1,4 +1,4 @@
-﻿// --- GUARANTEED CORRECT AND FINAL VERSION: Services/ProductService.cs ---
+﻿// ---  Services/ProductService.cs ---
 using IMS_Group03.DataAccess.Repositories;
 using IMS_Group03.Models;
 using Microsoft.Extensions.Logging;
@@ -37,8 +37,6 @@ namespace IMS_Group03.Services
         public async Task AddProductAsync(Product product)
         {
             if (product == null) throw new ArgumentNullException(nameof(product));
-            if (string.IsNullOrWhiteSpace(product.Sku)) throw new ArgumentException("SKU is required.");
-
             if (!await IsSkuUniqueAsync(product.Sku))
             {
                 throw new InvalidOperationException($"Product with SKU '{product.Sku}' already exists.");
@@ -47,7 +45,6 @@ namespace IMS_Group03.Services
             product.DateCreated = DateTime.UtcNow;
             product.LastUpdated = DateTime.UtcNow;
 
-            // This is the correct sequence.
             await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.CompleteAsync();
         }

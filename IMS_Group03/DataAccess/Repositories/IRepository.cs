@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: DataAccess/Repositories/IRepository.cs ---
+﻿// --- DataAccess/Repositories/IRepository.cs ---
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -16,6 +16,6 @@ namespace IMS_Group03.DataAccess.Repositories
         void Update(T entity);
         void Remove(T entity);
         void RemoveRange(IEnumerable<T> entities);
-        // SaveChangesAsync() has been REMOVED from this interface.
+  
     }
 }

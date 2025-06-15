@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/BooleanToVisibilityConverter.cs ---
+﻿// --- Converters/BooleanToVisibilityConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows;

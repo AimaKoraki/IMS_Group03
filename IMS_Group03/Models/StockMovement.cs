@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Models/StockMovement.cs ---
+﻿// Models/StockMovement.cs ---
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 
@@ -32,11 +32,11 @@ namespace IMS_Group03.Models
         private int? _sourcePurchaseOrderId;
         public virtual PurchaseOrder? SourcePurchaseOrder { get; set; }
 
-        // ***** FIX: ADD THESE TWO PROPERTIES *****
+
         [ObservableProperty]
         private int? _purchaseOrderItemId; // Foreign key to the specific PO line item
         public virtual PurchaseOrderItem? PurchaseOrderItem { get; set; } // Navigation property
-        // ***** END OF FIX *****
+
 
         [ObservableProperty]
         private int? _performedByUserId;

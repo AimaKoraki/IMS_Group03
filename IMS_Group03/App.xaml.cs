@@ -1,7 +1,8 @@
-﻿// --- FINAL GUARANTEED VERSION: App.xaml.cs ---
+﻿// --- FULLY CORRECTED AND FINALIZED: App.xaml.cs ---
 using IMS_Group03.Controllers;
 using IMS_Group03.DataAccess;
 using IMS_Group03.DataAccess.Repositories;
+using IMS_Group03.Models;
 using IMS_Group03.Services;
 using IMS_Group03.Views;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 
 namespace IMS_Group03
@@ -34,16 +35,16 @@ namespace IMS_Group03
 
                 var serviceCollection = new ServiceCollection();
                 ConfigureServices(serviceCollection);
-
                 ServiceProvider = serviceCollection.BuildServiceProvider();
 
-                // Use the hardcoded login window for our test
+                SeedDatabase(ServiceProvider);
+
                 var loginWindow = ServiceProvider.GetRequiredService<LoginWindow>();
                 loginWindow.Show();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"A critical error occurred on startup: {ex.Message}", "Fatal Error");
+                MessageBox.Show($"A critical error occurred on startup: {ex.Message}\n\nCheck database connection and configuration.", "Fatal Error");
                 Current.Shutdown();
             }
         }
@@ -55,35 +56,32 @@ namespace IMS_Group03
             string? connectionString = Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
-                MessageBox.Show("Database connection string is missing.", "Error");
+                MessageBox.Show("Database connection string is missing from appsettings.json.", "Configuration Error");
                 Current.Shutdown();
                 return;
             }
-            var dbContextOptions = new DbContextOptionsBuilder<AppDbContext>()
-    .UseSqlServer(connectionString)
-    .Options;
-            services.AddTransient(x => new AppDbContext(dbContextOptions));
 
-            // Repositories
-            services.AddTransient<IProductRepository, ProductRepository>();
-            services.AddTransient<ISupplierRepository, SupplierRepository>();
-            services.AddTransient<IPurchaseOrderRepository, PurchaseOrderRepository>();
-            services.AddTransient<IStockMovementRepository, StockMovementRepository>();
-            services.AddTransient<IUserRepository, UserRepository>();
+            // --- Database and Data Access Layer ---
+            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+            services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+            services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // Unit of Work
-            // We use the version that receives repositories via its constructor.
-            services.AddTransient<IUnitOfWork, UnitOfWork>();
+            // --- Business Logic Services ---
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IStockMovementService, StockMovementService>();
 
-            // Services
-            services.AddTransient<IUserService, UserService>();
-            services.AddTransient<IProductService, ProductService>();
-            services.AddTransient<ISupplierService, SupplierService>();
-            services.AddTransient<IOrderService, OrderService>();
-            services.AddTransient<IStockMovementService, StockMovementService>();
+            // --- Controllers ---
+            // FIX: Register the Singleton MainController using an explicit factory.
+            services.AddSingleton(provider => new MainController(provider));
 
-            // Controllers
-            services.AddSingleton<MainController>();
+            // Register all other controllers as Transient.
             services.AddTransient<LoginController>();
             services.AddTransient<DashboardController>();
             services.AddTransient<ProductController>();
@@ -93,7 +91,7 @@ namespace IMS_Group03
             services.AddTransient<ReportController>();
             services.AddTransient<UserSettingsController>();
 
-            // Windows and Views
+            // --- Windows and Views ---
             services.AddTransient<MainWindow>();
             services.AddTransient<LoginWindow>();
             services.AddTransient<DashboardView>();
@@ -104,7 +102,12 @@ namespace IMS_Group03
             services.AddTransient<ReportView>();
             services.AddTransient<UserSettingsView>();
 
-            // Logging
+            // --- Global Converters ---
+            services.AddSingleton<Converters.BooleanToVisibilityConverter>();
+            services.AddSingleton<Converters.NullToVisibilityConverter>();
+            // ... add other global converters here ...
+
+            // --- Logging ---
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.ClearProviders();
@@ -112,6 +115,39 @@ namespace IMS_Group03
                 loggingBuilder.AddConsole();
                 loggingBuilder.AddDebug();
             });
+        }
+
+        private void SeedDatabase(IServiceProvider serviceProvider)
+        {
+#if DEBUG
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                var adminExists = Task.Run(() => userService.GetUserByUsernameAsync("admin")).GetAwaiter().GetResult();
+
+                if (adminExists == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("--> No admin user found. Seeding initial admin user...");
+                    var adminUser = new User
+                    {
+                        Username = "admin",
+                        FullName = "Administrator",
+                        Role = "Admin",
+                        IsActive = true
+                    };
+
+                    var (success, _, message) = Task.Run(() => userService.CreateUserAsync(adminUser, "123")).GetAwaiter().GetResult();
+                    if (success)
+                    {
+                        System.Diagnostics.Debug.WriteLine("--> Seeded initial admin user with password '123' successfully.");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"--> FAILED to seed admin user: {message}");
+                    }
+                }
+            }
+#endif
         }
     }
 }

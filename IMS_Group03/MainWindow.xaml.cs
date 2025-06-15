@@ -1,10 +1,11 @@
-﻿// --- COMPLETE AND FINALIZED: MainWindow.xaml.cs ---
+﻿// --- FULLY CORRECTED AND FINALIZED: MainWindow.xaml.cs ---
 using IMS_Group03.Controllers;
 using IMS_Group03.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace IMS_Group03
 {
@@ -12,90 +13,77 @@ namespace IMS_Group03
     {
         private readonly MainController _mainController;
 
-        public MainWindow()
+        public MainWindow(MainController mainController)
         {
             InitializeComponent();
-
-            if (App.ServiceProvider == null)
-            {
-                MessageBox.Show("Fatal Error: Service Provider is not initialized.", "Startup Error");
-                Application.Current.Shutdown();
-                return;
-            }
-
-            _mainController = App.ServiceProvider.GetRequiredService<MainController>();
+            _mainController = mainController;
             this.DataContext = _mainController;
 
-            _mainController.PropertyChanged += MainController_PropertyChanged;
+            // Subscribe to the LogoutRequested event from the MainController
             _mainController.OnLogoutRequested += MainController_OnLogoutRequested;
-
-            NavigateFrameToView(_mainController.CurrentViewIdentifier);
+            // Ensure we unsubscribe when the window closes to prevent memory leaks
+            this.Closing += MainWindow_Closing;
         }
 
-        private void MainController_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        // --- NEW: Event Handlers to manage window lifetime ---
+        private void MainController_OnLogoutRequested(object? sender, EventArgs e)
         {
-            if (e.PropertyName == nameof(MainController.CurrentViewIdentifier))
+            // When the MainController signals a logout...
+            var loginWindow = App.ServiceProvider.GetRequiredService<LoginWindow>();
+            loginWindow.Show(); // Show the login window
+            this.Close(); // Close this MainWindow
+        }
+
+        private void MainWindow_Closing(object? sender, CancelEventArgs e)
+        {
+            // Clean up the event subscription when the window is closed
+            if (_mainController != null)
             {
-                NavigateFrameToView(_mainController.CurrentViewIdentifier);
+                _mainController.OnLogoutRequested -= MainController_OnLogoutRequested;
             }
         }
 
-        private void NavigateFrameToView(object viewIdentifier)
+        // --- UPDATED: All navigation click handlers now simply call the MainController ---
+        // They no longer need to know about the Frame or which View to navigate to.
+
+        private void DashboardNavButton_Click(object sender, RoutedEventArgs e)
         {
-            if (viewIdentifier is not string viewNameKey) return;
-
-            // FIX: All views are now included in the navigation logic.
-            Type? viewType = viewNameKey switch
-            {
-                "DashboardView" => typeof(DashboardView),
-                "ProductsView" => typeof(ProductView),
-                "SuppliersView" => typeof(SupplierView),
-                "PurchaseOrdersView" => typeof(PurchaseOrderView),
-                "StockMovementsView" => typeof(StockMovementView),
-                "ReportsView" => typeof(ReportView),
-                "UserSettingsView" => typeof(UserSettingsView),
-                _ => null
-            };
-
-            if (viewType != null && MainFrame.Content?.GetType() != viewType)
-            {
-                var viewInstance = App.ServiceProvider.GetRequiredService(viewType);
-                MainFrame.Content = viewInstance;
-            }
+            _mainController.NavigateToDashboard();
         }
 
-        #region Sidebar Button Clicks
+        private void ProductsNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToProducts();
+        }
 
-        private void DashboardNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToDashboard();
-        private void ProductsNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToProducts();
-        private void SuppliersNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToSuppliers();
+        private void SuppliersNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToSuppliers();
+        }
 
-        // FIX: All missing click handlers are now present.
-        private void PurchaseOrdersNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToPurchaseOrders();
-        private void StockMovementsNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToStockMovements();
-        private void ReportsNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToReports();
-        private void UserSettingsNavButton_Click(object sender, RoutedEventArgs e) => _mainController.NavigateToUserSettings();
+        private void PurchaseOrdersNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToPurchaseOrders();
+        }
+
+        private void StockMovementsNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToStockMovements();
+        }
+
+        private void ReportsNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToReports();
+        }
+
+        private void UserSettingsNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainController.NavigateToUserSettings();
+        }
 
         private void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
             _mainController.Logout();
-        }
-
-        #endregion
-
-        private void MainController_OnLogoutRequested(object? sender, EventArgs e)
-        {
-            var loginWindow = App.ServiceProvider.GetRequiredService<LoginWindow>();
-            loginWindow.Show();
-
-            // Unsubscribe from events to prevent memory leaks before closing.
-            if (_mainController != null)
-            {
-                _mainController.PropertyChanged -= MainController_PropertyChanged;
-                _mainController.OnLogoutRequested -= MainController_OnLogoutRequested;
-            }
-
-            this.Close();
         }
     }
 }

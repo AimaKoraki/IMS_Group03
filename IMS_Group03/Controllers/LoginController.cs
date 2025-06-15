@@ -1,30 +1,28 @@
-﻿// --- GENERATED AND FINALIZED: Controllers/LoginController.cs ---
+﻿// --- Controllers/LoginController.cs ---
 using IMS_Group03.Models;
 using IMS_Group03.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Security; // For SecureString
 using System.Threading.Tasks;
 
 namespace IMS_Group03.Controllers
 {
     public class LoginController : INotifyPropertyChanged
     {
-        private readonly IUserService _userService;
-        private readonly MainController _mainController; // To hand off the session
+        
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly MainController _mainController;
         private readonly ILogger<LoginController> _logger;
 
-        #region Properties
+        #region Properties (Your existing properties are perfect and unchanged)
         private string _username = string.Empty;
         public string Username
         {
             get => _username;
             set { _username = value; OnPropertyChanged(); }
         }
-
-        // We do not store the password in a string for security.
-        // The View's PasswordBox will pass it directly to the LoginAsync method.
 
         private bool _isBusy;
         public bool IsBusy
@@ -43,17 +41,19 @@ namespace IMS_Group03.Controllers
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // The MainController is injected as a Singleton, so this controller gets
-        // a reference to the same instance that the MainWindow uses.
-        public LoginController(IUserService userService, MainController mainController, ILogger<LoginController> logger)
+       
+        public LoginController(
+            IServiceScopeFactory scopeFactory,
+            MainController mainController,
+            ILogger<LoginController> logger)
         {
-            _userService = userService;
-            _mainController = mainController;
+            _scopeFactory = scopeFactory;
+            _mainController = mainController; 
             _logger = logger;
         }
 
         /// <summary>
-        /// Attempts to authenticate the user and returns the authenticated user on success.
+        /// Attempts to authenticate the user. The entire operation is wrapped in a scope.
         /// </summary>
         /// <param name="password">The password from the View's PasswordBox.</param>
         /// <returns>The authenticated User object if successful, otherwise null.</returns>
@@ -71,42 +71,50 @@ namespace IMS_Group03.Controllers
             ErrorMessage = string.Empty;
             OnPropertyChanged(nameof(ErrorMessage));
 
-            try
+            // --- Create a scope for the entire login transaction. ---
+            using (var scope = _scopeFactory.CreateScope())
             {
-                var (success, user, message) = await _userService.AuthenticateAsync(Username, password);
-
-                if (success && user != null)
+                try
                 {
-                    _logger.LogInformation("User '{Username}' authenticated successfully.", user.Username);
+                    // Resolve IUserService from the created scope.
+                    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
-                    // Update the user's last login date. This is a fire-and-forget operation.
-                    _ = _userService.UpdateLastLoginAsync(user.Id);
+                    // Authenticate the user using the scoped service.
+                    var (success, user, message) = await userService.AuthenticateAsync(Username, password);
 
-                    // Hand off the authenticated user to the main application controller.
-                    _mainController.SetAuthenticatedUser(user);
+                    if (success && user != null)
+                    {
+                        _logger.LogInformation("User '{Username}' authenticated successfully.", user.Username);
 
-                    return user; // Return the user to signal success to the View.
+                        // Update the user's last login date within the same scope/transaction.
+                        await userService.UpdateLastLoginAsync(user.Id);
+
+                        // Hand off the authenticated user to the main application controller.
+                        _mainController.SetAuthenticatedUser(user);
+
+                        return user; // Signal success to the View.
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed login attempt for username: {Username}", Username);
+                        ErrorMessage = message;
+                        OnPropertyChanged(nameof(ErrorMessage));
+                        return null;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("Failed login attempt for username: {Username}", Username);
-                    ErrorMessage = message;
+                    _logger.LogError(ex, "An unexpected error occurred during login for username: {Username}", Username);
+                    ErrorMessage = "An unexpected error occurred. Please try again.";
                     OnPropertyChanged(nameof(ErrorMessage));
                     return null;
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An unexpected error occurred during login for username: {Username}", Username);
-                ErrorMessage = "An unexpected error occurred. Please try again.";
-                OnPropertyChanged(nameof(ErrorMessage));
-                return null;
-            }
-            finally
-            {
-                IsBusy = false;
-                OnPropertyChanged(nameof(IsBusy));
-            }
+                finally
+                {
+                    IsBusy = false;
+                    OnPropertyChanged(nameof(IsBusy));
+                }
+            } // The scope, along with the DbContext and IUserService instance, is disposed of here.
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

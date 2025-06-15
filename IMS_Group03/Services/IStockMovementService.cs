@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Services/IStockMovementService.cs ---
+﻿// --- Services/IStockMovementService.cs ---
 using IMS_Group03.Models;
 using System;
 using System.Collections.Generic;

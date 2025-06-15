@@ -1,5 +1,5 @@
-﻿// File: DataAccess/Repositories/IPurchaseOrderRepository.cs
-using IMS_Group03.Models; // For PurchaseOrder, OrderStatus
+﻿// --- DataAccess/Repositories/IPurchaseOrderRepository.cs ---
+using IMS_Group03.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,7 +11,8 @@ namespace IMS_Group03.DataAccess.Repositories
         /// <summary>
         /// Gets a purchase order by ID, including its supplier, order items, and the product for each item.
         /// </summary>
-        Task<PurchaseOrder> GetByIdWithDetailsAsync(int purchaseOrderId);
+        // --- FIX: The return type is now nullable to reflect that an order might not be found. ---
+        Task<PurchaseOrder?> GetByIdWithDetailsAsync(int purchaseOrderId);
 
         /// <summary>
         /// Gets all purchase orders, including their suppliers and order items with products.
@@ -37,11 +38,5 @@ namespace IMS_Group03.DataAccess.Repositories
         /// Gets purchase orders that contain a specific product.
         /// </summary>
         Task<IEnumerable<PurchaseOrder>> GetOrdersContainingProductAsync(int productId);
-
-        // If you need to manage PurchaseOrderItems independently (less common, but possible)
-        // Task<PurchaseOrderItem> GetOrderItemByIdAsync(int orderItemId);
-        // Task AddOrderItemAsync(PurchaseOrderItem item);
-        // void UpdateOrderItem(PurchaseOrderItem item);
-        // void RemoveOrderItem(PurchaseOrderItem item);
     }
 }

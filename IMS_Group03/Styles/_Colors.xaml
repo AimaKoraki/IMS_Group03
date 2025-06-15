@@ -14,10 +14,9 @@
     <Color x:Key="TextColor">#DDDDDD</Color>
     <Color x:Key="SubtleTextColor">#AAAAAA</Color>
     <Color x:Key="DisabledTextColor">#777777</Color>
-    <Color x:Key="FormPanelBackgroundColor">#252525</Color>
     <Color x:Key="LinkColor">#82C7FF</Color>
     <Color x:Key="LinkHoverColor">#AADDFF</Color>
-
+    <Color x:Key="FormPanelBackgroundColor">#252525</Color>
     <!-- Accent/Brand Colors -->
     <Color x:Key="AccentColor1">#007ACC</Color>
     <!-- Blue -->
@@ -114,17 +113,5 @@
     <SolidColorBrush x:Key="DataGridCellSelectedBrush" Color="{StaticResource DataGridCellSelectedBackgroundColor}"/>
 
     <SolidColorBrush x:Key="SidebarButtonPressedBackgroundBrush" Color="{StaticResource SidebarButtonPressedBackgroundColor}"/>
-    <!-- New Calendar-Specific Colors -->
-    <Color x:Key="CalendarBackgroundColor">#2D2D30</Color>
-    <Color x:Key="CalendarHeaderColor">#3E3E42</Color>
-    <Color x:Key="CalendarSelectedDayColor">#007ACC</Color>
-    <Color x:Key="CalendarHoverDayColor">#3E3E42</Color>
-    <Color x:Key="CalendarInactiveDayColor">#555555</Color>
 
-    <!-- New Brushes for the Calendar -->
-    <SolidColorBrush x:Key="CalendarBackgroundBrush" Color="{StaticResource CalendarBackgroundColor}"/>
-    <SolidColorBrush x:Key="CalendarHeaderBrush" Color="{StaticResource CalendarHeaderColor}"/>
-    <SolidColorBrush x:Key="CalendarSelectedDayBrush" Color="{StaticResource CalendarSelectedDayColor}"/>
-    <SolidColorBrush x:Key="CalendarHoverDayBrush" Color="{StaticResource CalendarHoverDayColor}"/>
-    <SolidColorBrush x:Key="CalendarInactiveDayBrush" Color="{StaticResource CalendarInactiveDayColor}"/>
 </ResourceDictionary>

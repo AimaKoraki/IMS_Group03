@@ -1,4 +1,4 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Converters/ZeroToNormalRedConverter.cs ---
+﻿// ---  Converters/ZeroToNormalRedConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows;

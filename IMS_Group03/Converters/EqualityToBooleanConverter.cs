@@ -1,4 +1,4 @@
-﻿// --- NEW FILE: Converters/EqualityToBooleanConverter.cs ---
+﻿// ---Converters/EqualityToBooleanConverter.cs ---
 using System;
 using System.Globalization;
 using System.Windows.Data;

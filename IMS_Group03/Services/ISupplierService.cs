@@ -1,4 +1,4 @@
-﻿// --- VERIFIED AND CORRECT: Services/ISupplierService.cs ---
+﻿// --- Services/ISupplierService.cs ---
 using IMS_Group03.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;

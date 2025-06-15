@@ -1,4 +1,4 @@
-﻿<!-- COMPLETE AND FINALIZED: App.xaml -->
+﻿<!--  App.xaml -->
 <Application x:Class="IMS_Group03.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,19 +6,16 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Core Foundation Files -->
+                <!-- Core foundation files FIRST -->
                 <ResourceDictionary Source="Styles/_Colors.xaml"/>
                 <ResourceDictionary Source="Styles/_Fonts.xaml"/>
-                <ResourceDictionary Source="Styles/_PanelStyles.xaml"/>
 
-                <!-- Specific Control Style Files -->
+                <!-- Component style files AFTER -->
+                <ResourceDictionary Source="Styles/_PanelStyles.xaml"/>
                 <ResourceDictionary Source="Styles/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="Styles/TextBoxStyles.xaml"/>
                 <ResourceDictionary Source="Styles/DatePickerStyles.xaml"/>
-
-                <!-- FIX: Ensure this line is present to load the DataGrid styles -->
                 <ResourceDictionary Source="Styles/DataGridStyles.xaml"/>
-
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

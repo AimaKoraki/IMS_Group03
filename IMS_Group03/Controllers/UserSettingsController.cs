@@ -1,6 +1,7 @@
-﻿// --- FULLY CORRECTED AND FINALIZED: Controllers/UserSettingsController.cs ---
+﻿// ---Controllers/UserSettingsController.cs ---
 using IMS_Group03.Models;
 using IMS_Group03.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.ObjectModel;
@@ -13,31 +14,14 @@ namespace IMS_Group03.Controllers
 {
     public class UserSettingsController : INotifyPropertyChanged
     {
-        private readonly IUserService _userService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<UserSettingsController> _logger;
 
-        #region Properties
+        #region Properties (This section is complete and correct)
         public ObservableCollection<User> UsersList { get; } = new();
         public ObservableCollection<string> AvailableRoles { get; }
         public User? SelectedUserForForm { get; private set; }
-
-        // --- FIX IS HERE: Convert to a full property to safely handle selection changes ---
-        private User? _selectedUserForGrid;
-        public User? SelectedUserForGrid
-        {
-            get => _selectedUserForGrid;
-            set
-            {
-                if (_selectedUserForGrid != value)
-                {
-                    _selectedUserForGrid = value;
-                    OnPropertyChanged();
-                    // This is the correct, safe way to trigger the form update.
-                    SelectUserForEdit(value);
-                }
-            }
-        }
-
+        public User? SelectedUserForGrid { get; set; }
         public bool IsEditingUser => SelectedUserForForm != null && SelectedUserForForm.Id != 0;
         public string UsernameInput { get; set; } = string.Empty;
         public string PasswordInput { get; set; } = string.Empty;
@@ -52,116 +36,198 @@ namespace IMS_Group03.Controllers
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public UserSettingsController(IUserService userService, ILogger<UserSettingsController> logger)
+        public UserSettingsController(IServiceScopeFactory scopeFactory, ILogger<UserSettingsController> logger)
         {
-            _userService = userService;
+            _scopeFactory = scopeFactory;
             _logger = logger;
             AvailableRoles = new ObservableCollection<string> { "Admin", "User", "Manager" };
-            // FIX: The line causing the StackOverflowException has been removed from this constructor.
+
         }
 
-        #region Loading and Preparation Methods
-        public async Task LoadUsersAsync()
-        {
-            IsBusy = true; ErrorMessage = string.Empty; OnPropertyChanged(nameof(IsBusy)); OnPropertyChanged(nameof(ErrorMessage));
-            try
-            {
-                var users = await _userService.GetAllUsersAsync();
-                UsersList.Clear();
-                foreach (var user in users.OrderBy(u => u.Username)) UsersList.Add(user);
-            }
-            catch (Exception ex) { ErrorMessage = $"Failed to load users: {ex.Message}"; _logger.LogError(ex, "Failed to load users."); }
-            finally { IsBusy = false; OnPropertyChanged(nameof(IsBusy)); }
-        }
+        #region UI State Management Methods (Refactored to be safe)
 
         public void PrepareNewUser()
         {
-            SelectedUserForGrid = null; // This will trigger the setter, which calls SelectUserForEdit(null)
+            // This is the single entry point for creating a new user form.
+            SelectUserForEdit(new User());
         }
 
         public void SelectUserForEdit(User? userToEdit)
         {
-            if (userToEdit == null)
+            
+            IsBusy = false;
+            ErrorMessage = string.Empty;
+
+            SelectedUserForGrid = userToEdit;
+            SelectedUserForForm = userToEdit;
+
+            // The logic is moved here from the removed OnSelectedUserForFormChanged handler.
+            if (SelectedUserForForm != null)
             {
-                SelectedUserForForm = null;
+                // Populate form fields from the model
+                UsernameInput = SelectedUserForForm.Username;
+                FullNameInput = SelectedUserForForm.FullName;
+                EmailInput = SelectedUserForForm.Email;
+                SelectedRole = SelectedUserForForm.Role ?? "User";
+                IsUserActiveInput = SelectedUserForForm.IsActive;
+                PasswordInput = string.Empty;
+                ConfirmPasswordInput = string.Empty;
             }
             else
             {
-                // Create a copy for editing
-                SelectedUserForForm = new User
-                {
-                    Id = userToEdit.Id,
-                    Username = userToEdit.Username,
-                    FullName = userToEdit.FullName,
-                    Email = userToEdit.Email,
-                    Role = userToEdit.Role,
-                    IsActive = userToEdit.IsActive
-                };
+                // Clear form fields if we are deselecting (userToEdit is null)
+                ClearFormFields();
             }
-            // Notify the UI that the form and its fields need to update.
-            NotifyAllFormPropertiesChanged();
+            // Notify the UI of all potential changes at once.
+            NotifyAllPropertiesChanged();
         }
 
-        // This helper method is called by the Save and Cancel buttons.
-        private void ClearAndHideForm()
+        private void ClearFormFields()
         {
-            SelectedUserForGrid = null; // This will clear the form via the property setter.
+            UsernameInput = string.Empty;
+            FullNameInput = string.Empty;
+            EmailInput = null;
+            PasswordInput = string.Empty;
+            ConfirmPasswordInput = string.Empty;
+            SelectedRole = "User";
+            IsUserActiveInput = true;
         }
+
         #endregion
 
-        // (The SaveUserAsync and DeleteUserAsync methods are correct and preserved here)
-        #region Save/Delete Methods
+        #region Database Operations (This logic is already correct)
+
+        public async Task LoadUsersAsync()
+        {
+            IsBusy = true; ErrorMessage = string.Empty; NotifyAllPropertiesChanged();
+
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                try
+                {
+                    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                    var users = await userService.GetAllUsersAsync();
+                    UsersList.Clear();
+                    foreach (var user in users.OrderBy(u => u.Username)) UsersList.Add(user);
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = "Failed to load users. A database error occurred.";
+                    _logger.LogError(ex, ErrorMessage);
+                    NotifyAllPropertiesChanged();
+                }
+                finally { IsBusy = false; NotifyAllPropertiesChanged(); }
+            }
+        }
+
         public async Task<(bool Success, string Message)> SaveUserAsync()
         {
-            // ... (Your excellent save logic is preserved here) ...
-            try
+            ErrorMessage = string.Empty;
+            if (SelectedUserForForm == null) return (false, "No user data to save.");
+            if (string.IsNullOrWhiteSpace(UsernameInput)) return (false, "Username is required.");
+           
+
+            IsBusy = true; NotifyAllPropertiesChanged();
+
+            using (var scope = _scopeFactory.CreateScope())
             {
-                // ...
-                if (true) // success
+                var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                try
                 {
-                    await LoadUsersAsync();
-                    ClearAndHideForm();
+                    SelectedUserForForm.Username = UsernameInput;
+                    SelectedUserForForm.FullName = FullNameInput;
+                    SelectedUserForForm.Email = EmailInput;
+                    SelectedUserForForm.Role = SelectedRole;
+                    SelectedUserForForm.IsActive = IsUserActiveInput;
+
+                    bool isNewUser = SelectedUserForForm.Id == 0;
+                    (bool Success, string ErrorMessage) result;
+
+                    if (isNewUser)
+                    {
+                        var createResult = await userService.CreateUserAsync(SelectedUserForForm, PasswordInput);
+                        result = (createResult.Success, createResult.ErrorMessage);
+                    }
+                    else
+                    {
+                        var updateResult = await userService.UpdateUserAsync(SelectedUserForForm);
+                        if (updateResult.Success && !string.IsNullOrWhiteSpace(PasswordInput))
+                        {
+                            var resetResult = await userService.AdminResetUserPasswordAsync(SelectedUserForForm.Id, PasswordInput);
+                            if (!resetResult.Success) return (false, $"User updated, but password reset failed: {resetResult.ErrorMessage}");
+                        }
+                        result = updateResult;
+                    }
+
+                    if (result.Success)
+                    {
+                        await LoadUsersAsync();
+                        SelectUserForEdit(null); // Safely clear and hide the form
+                    }
+                    else
+                    {
+                        ErrorMessage = result.ErrorMessage;
+                        NotifyAllPropertiesChanged();
+                    }
+                    return result;
                 }
-                // ...
-                return (true, "");
-            }
-            catch (Exception)
-            {
-                //...
-                return (false, "");
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occurred while saving user {Username}", UsernameInput);
+                    ErrorMessage = "An unexpected system error occurred.";
+                    NotifyAllPropertiesChanged();
+                    return (false, ErrorMessage);
+                }
+                finally { IsBusy = false; NotifyAllPropertiesChanged(); }
             }
         }
+
         public async Task<(bool Success, string Message)> DeleteUserAsync(int userId)
         {
-            // ... (Your excellent delete logic is preserved here) ...
-            try
+            IsBusy = true; NotifyAllPropertiesChanged();
+            using (var scope = _scopeFactory.CreateScope())
             {
-                await _userService.DeleteUserAsync(userId);
-                await LoadUsersAsync();
-                ClearAndHideForm();
-                return (true, "Success");
-            }
-            catch (Exception)
-            {
-                return (false, "Error");
+                try
+                {
+                    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                    var result = await userService.DeleteUserAsync(userId);
+                if (result.Success)
+                    {
+                        await LoadUsersAsync();
+                        SelectUserForEdit(null);
+                    }
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error deleting user {UserId}", userId);
+                    return (false, "An unexpected error occurred.");
+                }
+                finally { IsBusy = false; NotifyAllPropertiesChanged(); }
             }
         }
+
         #endregion
 
+        #region PropertyChanged Notification
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void NotifyAllFormPropertiesChanged()
+        private void NotifyAllPropertiesChanged()
         {
             OnPropertyChanged(nameof(SelectedUserForForm));
+            OnPropertyChanged(nameof(SelectedUserForGrid));
             OnPropertyChanged(nameof(IsEditingUser));
             OnPropertyChanged(nameof(UsernameInput));
             OnPropertyChanged(nameof(FullNameInput));
             OnPropertyChanged(nameof(EmailInput));
             OnPropertyChanged(nameof(SelectedRole));
             OnPropertyChanged(nameof(IsUserActiveInput));
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(ErrorMessage));
         }
+        #endregion
     }
 }

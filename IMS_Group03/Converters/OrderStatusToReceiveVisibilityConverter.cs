@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/OrderStatusToReceiveVisibilityConverter.cs ---
+﻿// ---  Converters/OrderStatusToReceiveVisibilityConverter.cs ---
 using IMS_Group03.Models; // For OrderStatus enum
 using System;
 using System.Globalization;

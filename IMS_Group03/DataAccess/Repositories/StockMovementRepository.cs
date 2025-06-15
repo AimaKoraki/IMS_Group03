@@ -1,4 +1,4 @@
-﻿// --- FINALIZED & CORRECT: DataAccess/Repositories/StockMovementRepository.cs ---
+﻿// ---DataAccess/Repositories/StockMovementRepository.cs ---
 using IMS_Group03.DataAccess;
 using IMS_Group03.Models;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Converters/OrderStatusToCancelVisibilityConverter.cs ---
+﻿// --- Converters/OrderStatusToCancelVisibilityConverter.cs ---
 using IMS_Group03.Models; // For OrderStatus enum
 using System;
 using System.Globalization;

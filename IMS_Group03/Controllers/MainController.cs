@@ -1,124 +1,96 @@
-﻿// --- COMPLETE AND FINALIZED: Controllers/MainController.cs ---
+﻿// --- Controllers/MainController.cs ---
 using IMS_Group03.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace IMS_Group03.Controllers
 {
     public class MainController : INotifyPropertyChanged
     {
-        #region Properties
-        private object _currentViewIdentifier = "DashboardView";
-        public object CurrentViewIdentifier
-        {
-            get => _currentViewIdentifier;
-            set { _currentViewIdentifier = value; OnPropertyChanged(); }
-        }
+        private readonly IServiceProvider _serviceProvider;
+        public INotifyPropertyChanged? CurrentPageController { get; private set; }
 
-        private string _statusMessage = "Application Ready.";
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set { _statusMessage = value; OnPropertyChanged(); }
-        }
-
-        private bool _isGlobalBusy;
-        public bool IsGlobalBusy
-        {
-            get => _isGlobalBusy;
-            set { _isGlobalBusy = value; OnPropertyChanged(); }
-        }
-
-        // Property to hold the authenticated user
         private User? _currentUser;
         public User? CurrentUser
         {
             get => _currentUser;
             private set
             {
-                _currentUser = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(WelcomeMessage));
+                // This custom setter is the key.
+                if (_currentUser != value)
+                {
+                    _currentUser = value;
+                    OnPropertyChanged(); // Notify that CurrentUser itself has changed
+                    OnPropertyChanged(nameof(WelcomeMessage)); // Notify that the welcome message needs to update
+                    OnPropertyChanged(nameof(IsCurrentUserAdmin)); // Notify that admin access needs to update
+                }
             }
         }
 
+        public bool IsCurrentUserAdmin => CurrentUser?.Role == "Admin";
         public string WelcomeMessage => CurrentUser != null ? $"Welcome, {CurrentUser.FullName}" : "Not Logged In";
-        #endregion
+        public string StatusMessage { get; set; } = "Application Ready.";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public event EventHandler? OnLogoutRequested;
 
-        public MainController()
+        public MainController(IServiceProvider serviceProvider)
         {
-            // Constructor is correct
+            _serviceProvider = serviceProvider;
         }
 
-        // Method to be called by the Login process to set the user
+        private void NavigateTo<TController>() where TController : INotifyPropertyChanged
+        {
+            if (CurrentUser == null) return;
+
+            var controller = _serviceProvider.GetRequiredService<TController>();
+
+            var setUserMethod = controller.GetType().GetMethod("SetCurrentUser");
+            if (setUserMethod != null)
+            {
+                setUserMethod.Invoke(controller, new object[] { CurrentUser });
+            }
+
+            CurrentPageController = controller;
+            OnPropertyChanged(nameof(CurrentPageController));
+        }
+
+        // --- All navigation methods are correct ---
+        public void NavigateToDashboard() { StatusMessage = "Dashboard"; NavigateTo<DashboardController>(); }
+        public void NavigateToProducts() { StatusMessage = "Managing Products"; NavigateTo<ProductController>(); }
+        public void NavigateToSuppliers() { StatusMessage = "Managing Suppliers"; NavigateTo<SupplierController>(); }
+        public void NavigateToPurchaseOrders() { StatusMessage = "Managing Purchase Orders"; NavigateTo<PurchaseOrderController>(); }
+        public void NavigateToStockMovements() { StatusMessage = "Viewing Stock Movements"; NavigateTo<StockMovementController>(); }
+        public void NavigateToReports() { StatusMessage = "Viewing Reports"; NavigateTo<ReportController>(); }
+        public void NavigateToUserSettings() { if (!IsCurrentUserAdmin) return; StatusMessage = "User Settings"; NavigateTo<UserSettingsController>(); }
+
+        #region Session Management Methods (With Final Fix)
+
+        // --- FIX: The logic here is re-ordered to be 100% safe. ---
         public void SetAuthenticatedUser(User user)
         {
+            // Step 1: Set the CurrentUser. This triggers all the OnPropertyChanged events.
             CurrentUser = user;
-            // After setting the user, navigate to the initial screen
+
+            // Step 2: Only AFTER the user is set and all notifications have been sent,
+            // then we perform the navigation.
             NavigateToDashboard();
         }
 
-        #region Navigation Methods (Your original methods restored)
-
-        public void NavigateToDashboard()
-        {
-            CurrentViewIdentifier = "DashboardView";
-            StatusMessage = "Dashboard";
-        }
-
-        public void NavigateToProducts()
-        {
-            CurrentViewIdentifier = "ProductsView";
-            StatusMessage = "Managing Products";
-        }
-
-        public void NavigateToSuppliers()
-        {
-            CurrentViewIdentifier = "SuppliersView";
-            StatusMessage = "Managing Suppliers";
-        }
-
-        public void NavigateToPurchaseOrders()
-        {
-            CurrentViewIdentifier = "PurchaseOrdersView";
-            StatusMessage = "Managing Purchase Orders";
-        }
-
-        public void NavigateToStockMovements()
-        {
-            CurrentViewIdentifier = "StockMovementsView";
-            StatusMessage = "Viewing Stock Movements";
-        }
-
-        public void NavigateToReports()
-        {
-            CurrentViewIdentifier = "ReportsView";
-            StatusMessage = "Viewing Reports";
-        }
-
-        public void NavigateToUserSettings()
-        {
-            CurrentViewIdentifier = "UserSettingsView";
-            StatusMessage = "User Settings";
-        }
-        #endregion
-
-        // Method to handle user logout
         public void Logout()
         {
             if (MessageBox.Show("Are you sure you want to log out?", "Confirm Logout", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 CurrentUser = null;
-                // Raise the event that the MainWindow is listening for.
+                CurrentPageController = null;
+                OnPropertyChanged(nameof(CurrentPageController));
                 OnLogoutRequested?.Invoke(this, EventArgs.Empty);
             }
         }
+        #endregion
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {

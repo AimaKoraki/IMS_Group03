@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: Models/PurchaseOrderItem.cs ---
+﻿// Models/PurchaseOrderItem.cs ---
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace IMS_Group03.Models

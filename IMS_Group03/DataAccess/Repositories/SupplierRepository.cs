@@ -1,6 +1,6 @@
 ﻿// File: DataAccess/Repositories/SupplierRepository.cs
-using IMS_Group03.DataAccess; // For AppDbContext
-using IMS_Group03.Models;     // For Supplier
+using IMS_Group03.DataAccess; 
+using IMS_Group03.Models;     
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,4 @@
-﻿// --- CORRECTED AND FINALIZED: DataAccess/Repositories/Repository.cs ---
+﻿//  DataAccess/Repositories/Repository.cs ---
 using IMS_Group03.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -28,6 +28,6 @@ namespace IMS_Group03.DataAccess.Repositories
         public virtual void RemoveRange(IEnumerable<T> entities) => _context.Set<T>().RemoveRange(entities);
         public virtual void Update(T entity) => _context.Set<T>().Update(entity);
 
-        // SaveChangesAsync() has been REMOVED from the repository implementation.
+        
     }
 }

@@ -1,4 +1,4 @@
-﻿// --- VERIFIED AND CORRECT: DataAccess/Repositories/IUserRepository.cs ---
+﻿// --- DataAccess/Repositories/IUserRepository.cs ---
 using IMS_Group03.Models;
 using System.Threading.Tasks;
 
